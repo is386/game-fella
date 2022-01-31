@@ -90,3 +90,39 @@ func addAA(c *CPU) {
 func adi(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.nextByte(), 0)
 }
+
+func adcAB(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.B, c.flags.C)
+}
+
+func adcAC(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.C, c.flags.C)
+}
+
+func adcAD(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.D, c.flags.C)
+}
+
+func adcAE(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.E, c.flags.C)
+}
+
+func adcAH(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.H, c.flags.C)
+}
+
+func adcAL(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.L, c.flags.C)
+}
+
+func adcAHL(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.readByteHL(), c.flags.C)
+}
+
+func adcAA(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.reg.A, c.flags.C)
+}
+
+func aci(c *CPU) {
+	c.reg.A = c.add8(c.reg.A, c.nextByte(), c.flags.C)
+}
