@@ -209,6 +209,10 @@ func subAA(c *CPU) {
 	c.reg.A = c.sub(c.reg.A, c.reg.A, 0)
 }
 
+func sui(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.nextByte(), 0)
+}
+
 func sbcAB(c *CPU) {
 	c.reg.A = c.sub(c.reg.A, c.reg.B, c.flags.C)
 }
@@ -239,6 +243,10 @@ func sbcAHL(c *CPU) {
 
 func sbcAA(c *CPU) {
 	c.reg.A = c.sub(c.reg.A, c.reg.A, c.flags.C)
+}
+
+func sbi(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.nextByte(), c.flags.C)
 }
 
 func andAB(c *CPU) {
