@@ -98,6 +98,15 @@ func (c *CPU) or(a uint8, b uint8) uint8 {
 	return uint8(ans)
 }
 
+func (c *CPU) xor(a uint8, b uint8) uint8 {
+	ans := uint16(a) ^ uint16(b)
+	c.flags.setZero8(ans)
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = 0
+	return uint8(ans)
+}
+
 func addAB(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.reg.B, 0)
 }
@@ -328,4 +337,40 @@ func orAA(c *CPU) {
 
 func ori(c *CPU) {
 	c.reg.A = c.or(c.reg.A, c.nextByte())
+}
+
+func xorAB(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.B)
+}
+
+func xorAC(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.C)
+}
+
+func xorAD(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.D)
+}
+
+func xorAE(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.E)
+}
+
+func xorAH(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.H)
+}
+
+func xorAL(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.L)
+}
+
+func xorAHL(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.readByteHL())
+}
+
+func xorAA(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.reg.A)
+}
+
+func xri(c *CPU) {
+	c.reg.A = c.xor(c.reg.A, c.nextByte())
 }
