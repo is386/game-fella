@@ -15,3 +15,27 @@ func (f *Flags) getF() uint8 {
 	val |= f.C << 4
 	return val
 }
+
+func (f *Flags) setZero(val uint16) {
+	if val == 0 {
+		f.Z = 1
+	} else {
+		f.Z = 0
+	}
+}
+
+func (f *Flags) setCarryAdd(val uint16) {
+	if val > 0xFF {
+		f.C = 1
+	} else {
+		f.C = 0
+	}
+}
+
+func (f *Flags) setHalfCarryAdd(a uint8, b uint8) {
+	if a+b > 0xF {
+		f.H = 1
+	} else {
+		f.H = 0
+	}
+}
