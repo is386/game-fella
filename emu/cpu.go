@@ -46,6 +46,14 @@ func (c *CPU) Execute() {
 	instr(c)
 }
 
+func flip(val uint8) uint8 {
+	if val == 1 {
+		return 0
+	} else {
+		return 1
+	}
+}
+
 func (c *CPU) add8(a uint8, b uint8, cy uint8) uint8 {
 	ans := uint16(a) + uint16(b) + uint16(cy)
 	c.flags.setZero8(ans)
@@ -62,6 +70,14 @@ func (c *CPU) add16(a uint16, b uint16, cy uint8) uint16 {
 	c.flags.setHalfCarryAdd16((a & 0xFF), (b & 0xFF))
 	c.flags.setCarryAdd16(ans)
 	return uint16(ans)
+}
+
+func (c *CPU) sub(a uint8, b uint8, cy uint8) uint8 {
+	cy = flip(cy)
+	ans := c.add8(a, ^b, cy)
+	c.flags.N = 1
+	c.flags.C = flip(c.flags.C)
+	return uint8(ans)
 }
 
 func (c *CPU) and(a uint8, b uint8) uint8 {
@@ -159,6 +175,70 @@ func addHLHL(c *CPU) {
 
 func addHLSP(c *CPU) {
 	c.reg.setHL(c.add16(c.reg.getHL(), c.sp, 0))
+}
+
+func subAB(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.B, 0)
+}
+
+func subAC(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.C, 0)
+}
+
+func subAD(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.D, 0)
+}
+
+func subAE(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.E, 0)
+}
+
+func subAH(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.H, 0)
+}
+
+func subAL(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.L, 0)
+}
+
+func subAHL(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.readByteHL(), 0)
+}
+
+func subAA(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.A, 0)
+}
+
+func sbcAB(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.B, c.flags.C)
+}
+
+func sbcAC(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.C, c.flags.C)
+}
+
+func sbcAD(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.D, c.flags.C)
+}
+
+func sbcAE(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.E, c.flags.C)
+}
+
+func sbcAH(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.H, c.flags.C)
+}
+
+func sbcAL(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.L, c.flags.C)
+}
+
+func sbcAHL(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.readByteHL(), c.flags.C)
+}
+
+func sbcAA(c *CPU) {
+	c.reg.A = c.sub(c.reg.A, c.reg.A, c.flags.C)
 }
 
 func andAB(c *CPU) {
