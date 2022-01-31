@@ -64,6 +64,15 @@ func (c *CPU) add16(a uint16, b uint16, cy uint8) uint16 {
 	return uint16(ans)
 }
 
+func (c *CPU) and8(a uint8, b uint8) uint8 {
+	ans := uint16(a) & uint16(b)
+	c.flags.setZero8(ans)
+	c.flags.N = 0
+	c.flags.H = 1
+	c.flags.C = 0
+	return uint8(ans)
+}
+
 func addAB(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.reg.B, 0)
 }
@@ -150,4 +159,40 @@ func addHLHL(c *CPU) {
 
 func addHLSP(c *CPU) {
 	c.reg.setHL(c.add16(c.reg.getHL(), c.sp, 0))
+}
+
+func andAB(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.B)
+}
+
+func andAC(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.C)
+}
+
+func andAD(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.D)
+}
+
+func andAE(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.E)
+}
+
+func andAH(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.H)
+}
+
+func andAL(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.L)
+}
+
+func andAHL(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.readByteHL())
+}
+
+func andAA(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.reg.A)
+}
+
+func ani(c *CPU) {
+	c.reg.A = c.and8(c.reg.A, c.nextByte())
 }
