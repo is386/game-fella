@@ -89,6 +89,15 @@ func (c *CPU) and(a uint8, b uint8) uint8 {
 	return uint8(ans)
 }
 
+func (c *CPU) or(a uint8, b uint8) uint8 {
+	ans := uint16(a) | uint16(b)
+	c.flags.setZero8(ans)
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = 0
+	return uint8(ans)
+}
+
 func addAB(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.reg.B, 0)
 }
@@ -283,4 +292,40 @@ func andAA(c *CPU) {
 
 func ani(c *CPU) {
 	c.reg.A = c.and(c.reg.A, c.nextByte())
+}
+
+func orAB(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.B)
+}
+
+func orAC(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.C)
+}
+
+func orAD(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.D)
+}
+
+func orAE(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.E)
+}
+
+func orAH(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.H)
+}
+
+func orAL(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.L)
+}
+
+func orAHL(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.readByteHL())
+}
+
+func orAA(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.reg.A)
+}
+
+func ori(c *CPU) {
+	c.reg.A = c.or(c.reg.A, c.nextByte())
 }
