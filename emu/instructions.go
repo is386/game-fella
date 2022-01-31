@@ -21,6 +21,10 @@ var (
 	}
 
 	INSTRUCTIONS = map[uint8]func(*CPU){
+		0x09: addHLBC,
+		0x19: addHLDE,
+		0x29: addHLHL,
+		0x39: addHLSP,
 		0x80: addAB,
 		0x81: addAC,
 		0x82: addAD,

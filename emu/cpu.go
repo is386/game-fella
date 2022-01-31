@@ -48,11 +48,20 @@ func (c *CPU) Execute() {
 
 func (c *CPU) add8(a uint8, b uint8, cy uint8) uint8 {
 	ans := uint16(a) + uint16(b) + uint16(cy)
-	c.flags.setZero(ans)
+	c.flags.setZero8(ans)
 	c.flags.N = 0
-	c.flags.setCarryAdd(ans)
-	c.flags.setHalfCarryAdd((a & 0xF), (b & 0xF))
+	c.flags.setHalfCarryAdd8((a & 0xF), (b & 0xF))
+	c.flags.setCarryAdd8(ans)
 	return uint8(ans)
+}
+
+func (c *CPU) add16(a uint16, b uint16, cy uint8) uint16 {
+	ans := uint32(a) + uint32(b) + uint32(cy)
+	c.flags.setZero16(ans)
+	c.flags.N = 0
+	c.flags.setHalfCarryAdd16((a & 0xFF), (b & 0xFF))
+	c.flags.setCarryAdd16(ans)
+	return uint16(ans)
 }
 
 func addAB(c *CPU) {
@@ -125,4 +134,20 @@ func adcAA(c *CPU) {
 
 func aci(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.nextByte(), c.flags.C)
+}
+
+func addHLBC(c *CPU) {
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getBC(), 0))
+}
+
+func addHLDE(c *CPU) {
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getDE(), 0))
+}
+
+func addHLHL(c *CPU) {
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getHL(), 0))
+}
+
+func addHLSP(c *CPU) {
+	c.reg.setHL(c.add16(c.reg.getHL(), c.sp, 0))
 }
