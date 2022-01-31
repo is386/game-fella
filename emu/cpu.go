@@ -107,6 +107,22 @@ func (c *CPU) xor(a uint8, b uint8) uint8 {
 	return uint8(ans)
 }
 
+func (c *CPU) cp(a uint8, b uint8) {
+	ans := uint16(a) - uint16(b)
+	c.flags.setZero8(ans)
+	c.flags.N = 1
+	if (^(uint16(a) ^ ans ^ uint16(b)) & 0x10) > 0 {
+		c.flags.H = 1
+	} else {
+		c.flags.H = 0
+	}
+	if b > a {
+		c.flags.C = 1
+	} else {
+		c.flags.C = 0
+	}
+}
+
 func addAB(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.reg.B, 0)
 }
@@ -373,4 +389,46 @@ func xorAA(c *CPU) {
 
 func xri(c *CPU) {
 	c.reg.A = c.xor(c.reg.A, c.nextByte())
+}
+
+func cpAB(c *CPU) {
+	c.cp(c.reg.A, c.reg.B)
+}
+
+func cpAC(c *CPU) {
+	c.cp(c.reg.A, c.reg.C)
+}
+
+func cpAD(c *CPU) {
+	c.cp(c.reg.A, c.reg.D)
+}
+
+func cpAE(c *CPU) {
+	c.cp(c.reg.A, c.reg.E)
+}
+
+func cpAH(c *CPU) {
+	c.cp(c.reg.A, c.reg.H)
+}
+
+func cpAL(c *CPU) {
+	c.cp(c.reg.A, c.reg.L)
+}
+
+func cpAHL(c *CPU) {
+	c.cp(c.reg.A, c.readByteHL())
+}
+
+func cpAA(c *CPU) {
+	c.cp(c.reg.A, c.reg.A)
+}
+
+func cpi(c *CPU) {
+	c.cp(c.reg.A, c.nextByte())
+}
+
+func cpl(c *CPU) {
+	c.reg.A ^= 255
+	c.flags.N = 1
+	c.flags.H = 1
 }
