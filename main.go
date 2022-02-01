@@ -1,9 +1,11 @@
 package main
 
-import (
-	"fmt"
-)
+import "github.com/is386/GoBoy/emu"
 
 func main() {
-	fmt.Println("Hello World!")
+	cpu := emu.NewCPU()
+	cpu.LoadRom("roms/10-bit ops.gb")
+	for {
+		cpu.Execute()
+	}
 }

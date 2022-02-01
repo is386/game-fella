@@ -40,7 +40,7 @@ var (
 	}
 
 	INSTRUCTIONS = map[uint8]func(*CPU){
-		0x00: unimplemented,
+		0x00: nop,
 		0x01: unimplemented,
 		0x02: unimplemented,
 		0x03: incBC,

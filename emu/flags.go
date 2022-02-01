@@ -7,6 +7,10 @@ type Flags struct {
 	C uint8
 }
 
+func NewFlags() *Flags {
+	return &Flags{Z: 1, N: 0, H: 1, C: 1}
+}
+
 func (f *Flags) getF() uint8 {
 	val := uint8(0)
 	val |= f.Z << 7

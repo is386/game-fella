@@ -1,7 +1,15 @@
 package emu
 
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+)
+
 var (
-	MEM_SIZE int32 = 65536
+	MEM_SIZE int32  = 65536
+	PC       uint16 = 0x0100
+	SP       uint16 = 0xFFFE
 )
 
 type CPU struct {
@@ -14,7 +22,17 @@ type CPU struct {
 }
 
 func NewCPU() *CPU {
-	return &CPU{mem: NewMemory(MEM_SIZE)}
+	return &CPU{mem: NewMemory(MEM_SIZE), reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
+}
+
+func (c *CPU) LoadRom(filename string) {
+	rom, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < len(rom); i++ {
+		c.mem.writeByte(uint16(i), rom[i])
+	}
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {
@@ -54,11 +72,14 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 func (c *CPU) Execute() {
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
-	c.cyc += cyc
+	c.cyc += cyc * 4
 	instr(c)
 }
 
-func unimplemented(c *CPU) {}
+func unimplemented(c *CPU) {
+	fmt.Printf("unimplemented: 0x%02X\n", c.mem.mem[c.pc-1])
+	os.Exit(0)
+}
 
 func flip(val uint8) uint8 {
 	if val == 1 {
@@ -165,6 +186,9 @@ func (c *CPU) bit(val uint8, u3 uint8) {
 	c.flags.setZero8(uint16((val << u3) & 1))
 	c.flags.N = 0
 	c.flags.H = 1
+}
+
+func nop(c *CPU) {
 }
 
 func addAB(c *CPU) {
