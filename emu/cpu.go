@@ -497,6 +497,18 @@ func decA(c *CPU) {
 	c.reg.A = c.dec8(c.reg.A)
 }
 
+func decBC(c *CPU) {
+	c.reg.setBC(c.reg.getBC() - 1)
+}
+
+func decDE(c *CPU) {
+	c.reg.setDE(c.reg.getDE() - 1)
+}
+
+func decHL16(c *CPU) {
+	c.reg.setHL(c.reg.getHL() - 1)
+}
+
 func incB(c *CPU) {
 	c.reg.B = c.inc8(c.reg.B)
 }
@@ -527,4 +539,16 @@ func incHL(c *CPU) {
 
 func incA(c *CPU) {
 	c.reg.A = c.inc8(c.reg.A)
+}
+
+func incBC(c *CPU) {
+	c.reg.setBC(c.reg.getBC() + 1)
+}
+
+func incDE(c *CPU) {
+	c.reg.setDE(c.reg.getDE() + 1)
+}
+
+func incHL16(c *CPU) {
+	c.reg.setHL(c.reg.getHL() + 1)
 }
