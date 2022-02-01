@@ -159,6 +159,12 @@ func (c *CPU) dec8(val uint8) uint8 {
 	return uint8(ans)
 }
 
+func (c *CPU) bit(val uint8, u3 uint8) {
+	c.flags.setZero8(uint16((val << u3) & 1))
+	c.flags.N = 0
+	c.flags.H = 1
+}
+
 func addAB(c *CPU) {
 	c.reg.A = c.add8(c.reg.A, c.reg.B, 0)
 }
@@ -245,6 +251,18 @@ func addHLHL(c *CPU) {
 
 func addHLSP(c *CPU) {
 	c.reg.setHL(c.add16(c.reg.getHL(), c.sp, 0))
+}
+
+func addSP(c *CPU) {
+	e8 := int8(c.nextByte())
+	if e8 < 0 {
+		e8 *= -1
+		c.add16(c.sp, ^uint16(e8), 0)
+	} else {
+		c.add16(c.sp, uint16(e8), 0)
+	}
+	c.flags.Z = 0
+	c.flags.N = 0
 }
 
 func subAB(c *CPU) {
@@ -513,6 +531,10 @@ func decHL16(c *CPU) {
 	c.reg.setHL(c.reg.getHL() - 1)
 }
 
+func decSP(c *CPU) {
+	c.sp--
+}
+
 func incB(c *CPU) {
 	c.reg.B = c.inc8(c.reg.B)
 }
@@ -555,4 +577,264 @@ func incDE(c *CPU) {
 
 func incHL16(c *CPU) {
 	c.reg.setHL(c.reg.getHL() + 1)
+}
+
+func incSP(c *CPU) {
+	c.sp++
+}
+
+func bit0B(c *CPU) {
+	c.bit(c.reg.B, 0)
+}
+
+func bit0C(c *CPU) {
+	c.bit(c.reg.C, 0)
+}
+
+func bit0D(c *CPU) {
+	c.bit(c.reg.D, 0)
+}
+
+func bit0E(c *CPU) {
+	c.bit(c.reg.E, 0)
+}
+
+func bit0H(c *CPU) {
+	c.bit(c.reg.H, 0)
+}
+
+func bit0L(c *CPU) {
+	c.bit(c.reg.L, 0)
+}
+
+func bit0A(c *CPU) {
+	c.bit(c.reg.A, 0)
+}
+
+func bit1B(c *CPU) {
+	c.bit(c.reg.B, 1)
+}
+
+func bit1C(c *CPU) {
+	c.bit(c.reg.C, 1)
+}
+
+func bit1D(c *CPU) {
+	c.bit(c.reg.D, 1)
+}
+
+func bit1E(c *CPU) {
+	c.bit(c.reg.E, 1)
+}
+
+func bit1H(c *CPU) {
+	c.bit(c.reg.H, 1)
+}
+
+func bit1L(c *CPU) {
+	c.bit(c.reg.L, 1)
+}
+
+func bit1A(c *CPU) {
+	c.bit(c.reg.A, 1)
+}
+
+func bit2B(c *CPU) {
+	c.bit(c.reg.B, 2)
+}
+
+func bit2C(c *CPU) {
+	c.bit(c.reg.C, 2)
+}
+
+func bit2D(c *CPU) {
+	c.bit(c.reg.D, 2)
+}
+
+func bit2E(c *CPU) {
+	c.bit(c.reg.E, 2)
+}
+
+func bit2H(c *CPU) {
+	c.bit(c.reg.H, 2)
+}
+
+func bit2L(c *CPU) {
+	c.bit(c.reg.L, 2)
+}
+
+func bit2A(c *CPU) {
+	c.bit(c.reg.A, 2)
+}
+
+func bit3B(c *CPU) {
+	c.bit(c.reg.B, 3)
+}
+
+func bit3C(c *CPU) {
+	c.bit(c.reg.C, 3)
+}
+
+func bit3D(c *CPU) {
+	c.bit(c.reg.D, 3)
+}
+
+func bit3E(c *CPU) {
+	c.bit(c.reg.E, 3)
+}
+
+func bit3H(c *CPU) {
+	c.bit(c.reg.H, 3)
+}
+
+func bit3L(c *CPU) {
+	c.bit(c.reg.L, 3)
+}
+
+func bit3A(c *CPU) {
+	c.bit(c.reg.A, 3)
+}
+
+func bit4B(c *CPU) {
+	c.bit(c.reg.B, 4)
+}
+
+func bit4C(c *CPU) {
+	c.bit(c.reg.C, 4)
+}
+
+func bit4D(c *CPU) {
+	c.bit(c.reg.D, 4)
+}
+
+func bit4E(c *CPU) {
+	c.bit(c.reg.E, 4)
+}
+
+func bit4H(c *CPU) {
+	c.bit(c.reg.H, 4)
+}
+
+func bit4L(c *CPU) {
+	c.bit(c.reg.L, 4)
+}
+
+func bit4A(c *CPU) {
+	c.bit(c.reg.A, 4)
+}
+
+func bit5B(c *CPU) {
+	c.bit(c.reg.B, 5)
+}
+
+func bit5C(c *CPU) {
+	c.bit(c.reg.C, 5)
+}
+
+func bit5D(c *CPU) {
+	c.bit(c.reg.D, 5)
+}
+
+func bit5E(c *CPU) {
+	c.bit(c.reg.E, 5)
+}
+
+func bit5H(c *CPU) {
+	c.bit(c.reg.H, 5)
+}
+
+func bit5L(c *CPU) {
+	c.bit(c.reg.L, 5)
+}
+
+func bit5A(c *CPU) {
+	c.bit(c.reg.A, 5)
+}
+
+func bit6B(c *CPU) {
+	c.bit(c.reg.B, 6)
+}
+
+func bit6C(c *CPU) {
+	c.bit(c.reg.C, 6)
+}
+
+func bit6D(c *CPU) {
+	c.bit(c.reg.D, 6)
+}
+
+func bit6E(c *CPU) {
+	c.bit(c.reg.E, 6)
+}
+
+func bit6H(c *CPU) {
+	c.bit(c.reg.H, 6)
+}
+
+func bit6L(c *CPU) {
+	c.bit(c.reg.L, 6)
+}
+
+func bit6A(c *CPU) {
+	c.bit(c.reg.A, 6)
+}
+
+func bit7B(c *CPU) {
+	c.bit(c.reg.B, 7)
+}
+
+func bit7C(c *CPU) {
+	c.bit(c.reg.C, 7)
+}
+
+func bit7D(c *CPU) {
+	c.bit(c.reg.D, 7)
+}
+
+func bit7E(c *CPU) {
+	c.bit(c.reg.E, 7)
+}
+
+func bit7H(c *CPU) {
+	c.bit(c.reg.H, 7)
+}
+
+func bit7L(c *CPU) {
+	c.bit(c.reg.L, 7)
+}
+
+func bit7A(c *CPU) {
+	c.bit(c.reg.A, 7)
+}
+
+func bit0HL(c *CPU) {
+	c.bit(c.readByteHL(), 0)
+}
+
+func bit1HL(c *CPU) {
+	c.bit(c.readByteHL(), 1)
+}
+
+func bit2HL(c *CPU) {
+	c.bit(c.readByteHL(), 2)
+}
+
+func bit3HL(c *CPU) {
+	c.bit(c.readByteHL(), 3)
+}
+
+func bit4HL(c *CPU) {
+	c.bit(c.readByteHL(), 4)
+}
+
+func bit5HL(c *CPU) {
+	c.bit(c.readByteHL(), 5)
+}
+
+func bit6HL(c *CPU) {
+	c.bit(c.readByteHL(), 6)
+}
+
+func bit7HL(c *CPU) {
+	c.bit(c.readByteHL(), 7)
 }
