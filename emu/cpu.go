@@ -57,6 +57,12 @@ func (c *CPU) nextByte() uint8 {
 	return val
 }
 
+func (c *CPU) nextTwoBytes() uint16 {
+	a := c.nextByte()
+	b := c.nextByte()
+	return (uint16(b) << 8) | uint16(a)
+}
+
 func (c *CPU) fetch() uint8 {
 	return c.nextByte()
 }
@@ -77,6 +83,9 @@ func (c *CPU) Execute() {
 }
 
 func unimplemented(c *CPU) {
+	if c.mem.mem[c.pc-2] == 0xCB {
+		fmt.Println("CB instruction")
+	}
 	fmt.Printf("unimplemented: 0x%02X\n", c.mem.mem[c.pc-1])
 	os.Exit(0)
 }
@@ -863,4 +872,392 @@ func bit6HL(c *CPU) {
 
 func bit7HL(c *CPU) {
 	c.bit(c.readByteHL(), 7)
+}
+
+func jp(c *CPU) {
+	c.pc = c.nextTwoBytes()
+}
+
+func ldBB(c *CPU) {
+}
+
+func ldBC(c *CPU) {
+	c.reg.B = c.reg.C
+}
+
+func ldBD(c *CPU) {
+	c.reg.B = c.reg.D
+}
+
+func ldBE(c *CPU) {
+	c.reg.B = c.reg.E
+}
+
+func ldBH(c *CPU) {
+	c.reg.B = c.reg.H
+}
+
+func ldBL(c *CPU) {
+	c.reg.B = c.reg.L
+}
+
+func ldBA(c *CPU) {
+	c.reg.B = c.reg.A
+}
+
+func ldCB(c *CPU) {
+	c.reg.C = c.reg.B
+}
+
+func ldCC(c *CPU) {}
+
+func ldCD(c *CPU) {
+	c.reg.C = c.reg.D
+}
+
+func ldCE(c *CPU) {
+	c.reg.C = c.reg.E
+}
+
+func ldCH(c *CPU) {
+	c.reg.C = c.reg.H
+}
+
+func ldCL(c *CPU) {
+	c.reg.C = c.reg.L
+}
+
+func ldCA(c *CPU) {
+	c.reg.C = c.reg.A
+}
+
+func ldDB(c *CPU) {
+	c.reg.D = c.reg.B
+}
+
+func ldDC(c *CPU) {
+	c.reg.D = c.reg.C
+}
+
+func ldDD(c *CPU) {}
+
+func ldDE(c *CPU) {
+	c.reg.D = c.reg.E
+}
+
+func ldDH(c *CPU) {
+	c.reg.D = c.reg.H
+}
+
+func ldDL(c *CPU) {
+	c.reg.D = c.reg.L
+}
+
+func ldDA(c *CPU) {
+	c.reg.D = c.reg.A
+}
+
+func ldEB(c *CPU) {
+	c.reg.E = c.reg.B
+}
+
+func ldEC(c *CPU) {
+	c.reg.E = c.reg.C
+}
+
+func ldED(c *CPU) {
+	c.reg.E = c.reg.D
+}
+
+func ldEE(c *CPU) {}
+
+func ldEH(c *CPU) {
+	c.reg.E = c.reg.H
+}
+
+func ldEL(c *CPU) {
+	c.reg.E = c.reg.L
+}
+
+func ldEA(c *CPU) {
+	c.reg.E = c.reg.A
+}
+
+func ldHB(c *CPU) {
+	c.reg.H = c.reg.B
+}
+
+func ldHC(c *CPU) {
+	c.reg.H = c.reg.C
+}
+
+func ldHD(c *CPU) {
+	c.reg.H = c.reg.D
+}
+
+func ldHE(c *CPU) {
+	c.reg.H = c.reg.E
+}
+
+func ldHH(c *CPU) {}
+
+func ldHL(c *CPU) {
+	c.reg.H = c.reg.L
+}
+
+func ldHA(c *CPU) {
+	c.reg.H = c.reg.A
+}
+
+func ldLB(c *CPU) {
+	c.reg.L = c.reg.B
+}
+
+func ldLC(c *CPU) {
+	c.reg.L = c.reg.C
+}
+
+func ldLD(c *CPU) {
+	c.reg.L = c.reg.D
+}
+
+func ldLE(c *CPU) {
+	c.reg.L = c.reg.E
+}
+
+func ldLH(c *CPU) {
+	c.reg.L = c.reg.H
+}
+
+func ldLL(c *CPU) {}
+
+func ldLA(c *CPU) {
+	c.reg.L = c.reg.A
+}
+
+func ldAB(c *CPU) {
+	c.reg.A = c.reg.B
+}
+
+func ldAC(c *CPU) {
+	c.reg.A = c.reg.C
+}
+
+func ldAD(c *CPU) {
+	c.reg.A = c.reg.D
+}
+
+func ldAE(c *CPU) {
+	c.reg.A = c.reg.E
+}
+
+func ldAH(c *CPU) {
+	c.reg.A = c.reg.H
+}
+
+func ldAL(c *CPU) {
+	c.reg.A = c.reg.L
+}
+
+func ldAA(c *CPU) {}
+
+func ldiB(c *CPU) {
+	c.reg.B = c.nextByte()
+}
+
+func ldiC(c *CPU) {
+	c.reg.C = c.nextByte()
+}
+
+func ldiD(c *CPU) {
+	c.reg.D = c.nextByte()
+}
+
+func ldiE(c *CPU) {
+	c.reg.E = c.nextByte()
+}
+
+func ldiH(c *CPU) {
+	c.reg.H = c.nextByte()
+}
+
+func ldiL(c *CPU) {
+	c.reg.L = c.nextByte()
+}
+
+func ldiA(c *CPU) {
+	c.reg.A = c.nextByte()
+}
+
+func ldBC16(c *CPU) {
+	c.reg.setBC(c.nextTwoBytes())
+}
+
+func ldDE16(c *CPU) {
+	c.reg.setDE(c.nextTwoBytes())
+}
+
+func ldHL16(c *CPU) {
+	c.reg.setHL(c.nextTwoBytes())
+}
+
+func ldHLB(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.B)
+}
+
+func ldHLC(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.C)
+}
+
+func ldHLD(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.D)
+}
+
+func ldHLE(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.E)
+}
+
+func ldHLH(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.H)
+}
+
+func ldHLL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.L)
+}
+
+func ldiHL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.nextByte())
+}
+
+func ldBHL(c *CPU) {
+	c.reg.B = c.readByte(c.reg.getHL())
+}
+
+func ldCHL(c *CPU) {
+	c.reg.C = c.readByte(c.reg.getHL())
+}
+
+func ldDHL(c *CPU) {
+	c.reg.D = c.readByte(c.reg.getHL())
+}
+
+func ldEHL(c *CPU) {
+	c.reg.E = c.readByte(c.reg.getHL())
+}
+
+func ldHHL(c *CPU) {
+	c.reg.H = c.readByte(c.reg.getHL())
+}
+
+func ldLHL(c *CPU) {
+	c.reg.L = c.readByte(c.reg.getHL())
+}
+
+func ldBCA(c *CPU) {
+	c.writeByte(c.reg.getBC(), c.reg.A)
+}
+
+func ldDEA(c *CPU) {
+	c.writeByte(c.reg.getDE(), c.reg.A)
+}
+
+func ldHLA(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.reg.A)
+}
+
+func ld16A(c *CPU) {
+	c.writeByte(c.nextTwoBytes(), c.reg.A)
+}
+
+func ldh16A(c *CPU) {
+	addr := uint16(c.nextByte()) + 0xFF00
+	if addr <= 0xFFFF {
+		c.writeByte(addr, c.reg.A)
+	}
+}
+
+func ldhCA(c *CPU) {
+	addr := uint16(c.reg.C) + 0xFF00
+	if addr <= 0xFFFF {
+		c.writeByte(addr, c.reg.A)
+	}
+}
+
+func ldABC(c *CPU) {
+	c.reg.A = c.readByte(c.reg.getBC())
+}
+
+func ldADE(c *CPU) {
+	c.reg.A = c.readByte(c.reg.getDE())
+}
+
+func ldAHL(c *CPU) {
+	c.reg.A = c.readByte(c.reg.getHL())
+}
+
+func ldA16(c *CPU) {
+	c.reg.A = c.readByte(c.nextTwoBytes())
+}
+
+func ldhA16(c *CPU) {
+	addr := uint16(c.nextByte()) + 0xFF00
+	if addr <= 0xFFFF {
+		c.reg.A = c.readByte(addr)
+	}
+}
+
+func ldhAC(c *CPU) {
+	addr := uint16(c.reg.C) + 0xFF00
+	if addr <= 0xFFFF {
+		c.reg.A = c.readByte(addr)
+	}
+}
+
+func ldHLIA(c *CPU) {
+	ldHLA(c)
+	c.reg.setHL(c.reg.getHL() + 1)
+}
+
+func ldHLDA(c *CPU) {
+	ldHLA(c)
+	c.reg.setHL(c.reg.getHL() - 1)
+}
+
+func ldAHLI(c *CPU) {
+	ldAHL(c)
+	c.reg.setHL(c.reg.getHL() + 1)
+}
+
+func ldAHLD(c *CPU) {
+	ldAHL(c)
+	c.reg.setHL(c.reg.getHL() - 1)
+}
+
+func ldSP16(c *CPU) {
+	c.sp = c.nextTwoBytes()
+}
+
+func ld16SP(c *CPU) {
+	addr := c.nextTwoBytes()
+	c.writeByte(addr, uint8(c.sp&0xFF))
+	c.writeByte(addr+1, uint8(c.sp>>8))
+}
+
+func ldHLSP(c *CPU) {
+	og := c.sp
+	e8 := int8(c.nextByte())
+	if e8 < 0 {
+		e8 *= -1
+		c.add16(c.sp, ^uint16(e8), 0)
+	} else {
+		c.add16(c.sp, uint16(e8), 0)
+	}
+	c.reg.setHL(c.sp)
+	c.sp = og
+	c.flags.Z = 0
+	c.flags.N = 0
+}
+
+func ldSPHL(c *CPU) {
+	c.sp = c.reg.getHL()
 }
