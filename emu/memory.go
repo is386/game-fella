@@ -11,3 +11,7 @@ func NewMemory(size int32) *Memory {
 func (m *Memory) readByte(addr uint16) uint8 {
 	return m.mem[addr]
 }
+
+func (m *Memory) writeByte(addr uint16, val uint8) {
+	m.mem[addr] = val
+}

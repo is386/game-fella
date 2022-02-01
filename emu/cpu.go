@@ -25,6 +25,14 @@ func (c *CPU) readByteHL() uint8 {
 	return c.readByte(c.reg.getHL())
 }
 
+func (c *CPU) writeByte(addr uint16, val uint8) {
+	c.mem.writeByte(addr, val)
+}
+
+func (c *CPU) writeByteHL(val uint8) {
+	c.writeByte(c.reg.getHL(), val)
+}
+
 func (c *CPU) nextByte() uint8 {
 	val := c.readByte(c.pc)
 	c.pc++
@@ -121,6 +129,30 @@ func (c *CPU) cp(a uint8, b uint8) {
 	} else {
 		c.flags.C = 0
 	}
+}
+
+func (c *CPU) inc8(val uint8) uint8 {
+	ans := uint16(val) + uint16(1)
+	c.flags.setZero8(ans)
+	c.flags.N = 0
+	if (ans & 0xf) == 0 {
+		c.flags.H = 1
+	} else {
+		c.flags.H = 0
+	}
+	return uint8(ans)
+}
+
+func (c *CPU) dec8(val uint8) uint8 {
+	ans := uint16(val) - uint16(1)
+	c.flags.setZero8(ans)
+	c.flags.N = 1
+	if (ans & 0xf) == 0xf {
+		c.flags.H = 0
+	} else {
+		c.flags.H = 1
+	}
+	return uint8(ans)
 }
 
 func addAB(c *CPU) {
@@ -431,4 +463,68 @@ func cpl(c *CPU) {
 	c.reg.A ^= 255
 	c.flags.N = 1
 	c.flags.H = 1
+}
+
+func decB(c *CPU) {
+	c.reg.B = c.dec8(c.reg.B)
+}
+
+func decC(c *CPU) {
+	c.reg.C = c.dec8(c.reg.C)
+}
+
+func decD(c *CPU) {
+	c.reg.D = c.dec8(c.reg.D)
+}
+
+func decE(c *CPU) {
+	c.reg.E = c.dec8(c.reg.E)
+}
+
+func decH(c *CPU) {
+	c.reg.H = c.dec8(c.reg.H)
+}
+
+func decL(c *CPU) {
+	c.reg.L = c.dec8(c.reg.L)
+}
+
+func decHL(c *CPU) {
+	c.writeByteHL(c.dec8(c.readByteHL()))
+}
+
+func decA(c *CPU) {
+	c.reg.A = c.dec8(c.reg.A)
+}
+
+func incB(c *CPU) {
+	c.reg.B = c.inc8(c.reg.B)
+}
+
+func incC(c *CPU) {
+	c.reg.C = c.inc8(c.reg.C)
+}
+
+func incD(c *CPU) {
+	c.reg.D = c.inc8(c.reg.D)
+}
+
+func incE(c *CPU) {
+	c.reg.E = c.inc8(c.reg.E)
+}
+
+func incH(c *CPU) {
+	c.reg.H = c.inc8(c.reg.H)
+}
+
+func incL(c *CPU) {
+	c.reg.L = c.inc8(c.reg.L)
+}
+
+func incHL(c *CPU) {
+	c.writeByteHL(c.inc8(c.readByteHL()))
+}
+
+func incA(c *CPU) {
+	c.reg.A = c.inc8(c.reg.A)
 }
