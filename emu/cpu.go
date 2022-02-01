@@ -43,14 +43,18 @@ func (c *CPU) fetch() uint8 {
 	return c.nextByte()
 }
 
-func (c *CPU) decode(opcode uint8) func(*CPU) {
-	return INSTRUCTIONS[opcode]
+func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
+	if opcode == 0xCB {
+		opcode = c.fetch()
+		return CB_INSTRUCTIONS[opcode], CB_CYCLES[opcode]
+	}
+	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
 func (c *CPU) Execute() {
 	opcode := c.fetch()
-	c.cyc += CYCLES[opcode]
-	instr := c.decode(opcode)
+	instr, cyc := c.decode(opcode)
+	c.cyc += cyc
 	instr(c)
 }
 
