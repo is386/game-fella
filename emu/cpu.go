@@ -58,6 +58,8 @@ func (c *CPU) Execute() {
 	instr(c)
 }
 
+func unimplemented(c *CPU) {}
+
 func flip(val uint8) uint8 {
 	if val == 1 {
 		return 0
