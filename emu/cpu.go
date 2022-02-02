@@ -225,6 +225,31 @@ func (c *CPU) jump(addr uint16, cond bool) {
 	}
 }
 
+func (c *CPU) call(cond bool) {
+	if cond {
+		addr := c.nextTwoBytes()
+		c.push(c.pc)
+		c.pc = addr
+	}
+}
+
+func (c *CPU) ret(cond bool) {
+	if cond {
+		c.pc = c.pop()
+	}
+}
+
+func (c *CPU) push(val uint16) {
+	c.writeByte(c.sp-1, uint8(val>>8))
+	c.writeByte(c.sp-2, uint8(val&0xff))
+	c.sp -= 2
+}
+
+func (c *CPU) pop() uint16 {
+	c.sp += 2
+	return ((uint16(c.readByte(c.sp-1)) << 8) | uint16(c.readByte(c.sp-2)))
+}
+
 func nop(c *CPU) {
 }
 
@@ -1333,6 +1358,51 @@ func jrc(c *CPU) {
 func jrnc(c *CPU) {
 	e8 := int8(c.nextByte())
 	c.jump(uint16(int(c.pc)+int(e8)), c.flags.C == 0)
+}
+
+func call(c *CPU) {
+	c.call(true)
+}
+
+func callz(c *CPU) {
+	c.call(c.flags.Z == 1)
+}
+
+func callnz(c *CPU) {
+	c.call(c.flags.Z == 0)
+}
+
+func callc(c *CPU) {
+	c.call(c.flags.C == 1)
+}
+
+func callnc(c *CPU) {
+	c.call(c.flags.C == 0)
+}
+
+func ret(c *CPU) {
+	c.ret(true)
+}
+
+func retz(c *CPU) {
+	c.ret(c.flags.Z == 1)
+}
+
+func retnz(c *CPU) {
+	c.ret(c.flags.Z == 0)
+}
+
+func retc(c *CPU) {
+	c.ret(c.flags.C == 1)
+}
+
+func retnc(c *CPU) {
+	c.ret(c.flags.C == 0)
+}
+
+func reti(c *CPU) {
+	c.ret(true)
+	c.ime = true
 }
 
 func di(c *CPU) {
