@@ -1743,6 +1743,28 @@ func srlA(c *CPU) {
 	c.reg.A = c.shiftRightLogical(c.reg.A)
 }
 
+func daa(c *CPU) {
+	if c.flags.N == 0 {
+		if c.flags.C == 1 || c.reg.A > 0x99 {
+			c.reg.A += 0x60
+			c.flags.C = 1
+		}
+		if c.flags.H == 1 || ((c.reg.A & 0xF) > 0x9) {
+			c.reg.A += 0x06
+			c.flags.H = 0
+		}
+	} else if c.flags.C == 1 && c.flags.H == 1 {
+		c.reg.A += 0x9A
+		c.flags.H = 0
+	} else if c.flags.C == 1 {
+		c.reg.A += 0xA0
+	} else if c.flags.H == 1 {
+		c.reg.A += 0xFA
+		c.flags.H = 0
+	}
+	c.flags.setZero8(uint16(c.reg.A))
+}
+
 func di(c *CPU) {
 	c.ime = false
 	c.imeDelay = 0
