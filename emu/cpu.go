@@ -22,10 +22,11 @@ type CPU struct {
 	cyc      int
 	imeDelay int
 	ime      bool
+	debug    bool
 }
 
-func NewCPU() *CPU {
-	return &CPU{mem: NewMemory(MEM_SIZE), reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
+func NewCPU(debug bool) *CPU {
+	return &CPU{mem: NewMemory(MEM_SIZE), reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP, debug: debug}
 }
 
 func (c *CPU) LoadRom(filename string) {
@@ -48,14 +49,8 @@ func (c *CPU) readByteHL() uint8 {
 }
 
 func (c *CPU) writeByte(addr uint16, val uint8) {
-	if (val == 0x81) && (addr == 0xFF02) {
+	if !c.debug && (val == 0x81) && (addr == 0xFF02) {
 		fmt.Printf("%c", c.readByte(0xFF01))
-		if c.readByte(0xFF01) == 100 {
-			os.Exit(0)
-		}
-	}
-	if c.readByte(0xA000) == 0x80 {
-		fmt.Println("apsjod")
 	}
 	c.mem.writeByte(addr, val)
 }
@@ -88,8 +83,8 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
-func (c *CPU) Execute(debug bool) {
-	if debug {
+func (c *CPU) Execute() {
+	if c.debug {
 		c.print()
 	}
 	c.checkIME()
@@ -308,7 +303,12 @@ func (c *CPU) shiftRightLogical(val uint8) uint8 {
 }
 
 func (c *CPU) swap(val uint8) uint8 {
-	return (val << 4) | (val >> 4)
+	ans := (val << 4) | (val >> 4)
+	c.flags.setZero(ans == 0)
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = 0
+	return ans
 }
 
 func (c *CPU) push(val uint16) {
@@ -996,7 +996,7 @@ func swapB(c *CPU) {
 }
 
 func swapC(c *CPU) {
-	c.reg.B = c.swap(c.reg.C)
+	c.reg.C = c.swap(c.reg.C)
 }
 
 func swapD(c *CPU) {
@@ -1592,6 +1592,10 @@ func rlHL(c *CPU) {
 
 func rlA(c *CPU) {
 	c.reg.A = c.rotateLeft(c.reg.A)
+}
+
+func rla(c *CPU) {
+	c.reg.A = c.rotateLeft(c.reg.A)
 	c.flags.Z = 0
 }
 
@@ -1625,6 +1629,10 @@ func rlcHL(c *CPU) {
 }
 
 func rlcA(c *CPU) {
+	c.reg.A = c.rotateLeftCarry(c.reg.A)
+}
+
+func rlca(c *CPU) {
 	c.reg.A = c.rotateLeftCarry(c.reg.A)
 	c.flags.Z = 0
 }
@@ -1660,6 +1668,10 @@ func rrHL(c *CPU) {
 
 func rrA(c *CPU) {
 	c.reg.A = c.rotateRight(c.reg.A)
+}
+
+func rra(c *CPU) {
+	c.reg.A = c.rotateRight(c.reg.A)
 	c.flags.Z = 0
 }
 
@@ -1693,6 +1705,10 @@ func rrcHL(c *CPU) {
 }
 
 func rrcA(c *CPU) {
+	c.reg.A = c.rotateRightCarry(c.reg.A)
+}
+
+func rrca(c *CPU) {
 	c.reg.A = c.rotateRightCarry(c.reg.A)
 	c.flags.Z = 0
 }
@@ -1825,4 +1841,16 @@ func di(c *CPU) {
 
 func ei(c *CPU) {
 	c.imeDelay = 2
+}
+
+func scf(c *CPU) {
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = 1
+}
+
+func ccf(c *CPU) {
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = flip(c.flags.C)
 }
