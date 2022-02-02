@@ -147,6 +147,24 @@ func (c *CPU) add16(a uint16, b uint16) uint16 {
 	return uint16(ans)
 }
 
+func (c *CPU) add16Signed(a uint16, b int8) uint16 {
+	ans := uint16(int32(a) + int32(b))
+	temp := a ^ uint16(b) ^ ans
+	c.flags.Z = 0
+	c.flags.N = 0
+	if (temp & 0x10) == 0x10 {
+		c.flags.H = 1
+	} else {
+		c.flags.H = 0
+	}
+	if (temp & 0x100) == 0x100 {
+		c.flags.C = 1
+	} else {
+		c.flags.C = 0
+	}
+	return ans
+}
+
 func (c *CPU) sub(a uint8, b uint8, cy uint8) uint8 {
 	cy = flip(cy)
 	ans := c.add8(a, ^b, cy)
@@ -420,15 +438,7 @@ func addHLSP(c *CPU) {
 }
 
 func addSP(c *CPU) {
-	e8 := int8(c.nextByte())
-	if e8 < 0 {
-		e8 *= -1
-		c.add16(c.sp, ^uint16(e8))
-	} else {
-		c.add16(c.sp, uint16(e8))
-	}
-	c.flags.Z = 0
-	c.flags.N = 0
+	c.sp = c.add16Signed(c.sp, int8(c.nextByte()))
 }
 
 func subAB(c *CPU) {
@@ -1404,18 +1414,7 @@ func ld16SP(c *CPU) {
 }
 
 func ldHLSP(c *CPU) {
-	og := c.sp
-	e8 := int8(c.nextByte())
-	if e8 < 0 {
-		e8 *= -1
-		c.add16(c.sp, ^uint16(e8))
-	} else {
-		c.add16(c.sp, uint16(e8))
-	}
-	c.reg.setHL(c.sp)
-	c.sp = og
-	c.flags.Z = 0
-	c.flags.N = 0
+	c.reg.setHL(c.add16Signed(c.sp, int8(c.nextByte())))
 }
 
 func ldSPHL(c *CPU) {
