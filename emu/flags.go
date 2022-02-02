@@ -20,50 +20,26 @@ func (f *Flags) getF() uint8 {
 	return val
 }
 
-func (f *Flags) setZero8(val uint16) {
-	if uint8(val) == 0 {
+func (f *Flags) setZero(cond bool) {
+	if cond {
 		f.Z = 1
 	} else {
 		f.Z = 0
 	}
 }
 
-func (f *Flags) setZero16(val uint32) {
-	if uint16(val) == 0 {
-		f.Z = 1
-	} else {
-		f.Z = 0
-	}
-}
-
-func (f *Flags) setCarryAdd8(val uint16) {
-	if val > 0xFF {
-		f.C = 1
-	} else {
-		f.C = 0
-	}
-}
-
-func (f *Flags) setCarryAdd16(val uint32) {
-	if val > 0xFFFF {
-		f.C = 1
-	} else {
-		f.C = 0
-	}
-}
-
-func (f *Flags) setHalfCarryAdd8(a uint8, b uint8, cy uint8) {
-	if ((a & 0xF) + (b & 0xF) + cy) > 0xF {
+func (f *Flags) setHalfCarry(cond bool) {
+	if cond {
 		f.H = 1
 	} else {
 		f.H = 0
 	}
 }
 
-func (f *Flags) setHalfCarryAdd16(a uint16, ans uint32) {
-	if uint32(a&0xFFF) > (ans & 0xFFF) {
-		f.H = 1
+func (f *Flags) setCarry(cond bool) {
+	if cond {
+		f.C = 1
 	} else {
-		f.H = 0
+		f.C = 0
 	}
 }

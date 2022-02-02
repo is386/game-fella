@@ -132,18 +132,18 @@ func flip(val uint8) uint8 {
 
 func (c *CPU) add8(a uint8, b uint8, cy uint8) uint8 {
 	ans := uint16(a) + uint16(b) + uint16(cy)
-	c.flags.setZero8(ans)
+	c.flags.setZero(uint8(ans) == 0)
 	c.flags.N = 0
-	c.flags.setHalfCarryAdd8(a, b, cy)
-	c.flags.setCarryAdd8(ans)
+	c.flags.setHalfCarry(((a & 0xF) + (b & 0xF) + cy) > 0xF)
+	c.flags.setCarry(ans > 0xFF)
 	return uint8(ans)
 }
 
 func (c *CPU) add16(a uint16, b uint16) uint16 {
 	ans := uint32(a) + uint32(b)
 	c.flags.N = 0
-	c.flags.setHalfCarryAdd16(a, ans)
-	c.flags.setCarryAdd16(ans)
+	c.flags.setHalfCarry(uint32(a&0xFFF) > (ans & 0xFFF))
+	c.flags.setCarry(ans > 0xFFFF)
 	return uint16(ans)
 }
 
@@ -152,16 +152,8 @@ func (c *CPU) add16Signed(a uint16, b int8) uint16 {
 	temp := a ^ uint16(b) ^ ans
 	c.flags.Z = 0
 	c.flags.N = 0
-	if (temp & 0x10) == 0x10 {
-		c.flags.H = 1
-	} else {
-		c.flags.H = 0
-	}
-	if (temp & 0x100) == 0x100 {
-		c.flags.C = 1
-	} else {
-		c.flags.C = 0
-	}
+	c.flags.setHalfCarry((temp & 0x10) == 0x10)
+	c.flags.setCarry((temp & 0x100) == 0x100)
 	return ans
 }
 
@@ -176,7 +168,7 @@ func (c *CPU) sub(a uint8, b uint8, cy uint8) uint8 {
 
 func (c *CPU) and(a uint8, b uint8) uint8 {
 	ans := uint16(a) & uint16(b)
-	c.flags.setZero8(ans)
+	c.flags.setZero(uint8(ans) == 0)
 	c.flags.N = 0
 	c.flags.H = 1
 	c.flags.C = 0
@@ -185,7 +177,7 @@ func (c *CPU) and(a uint8, b uint8) uint8 {
 
 func (c *CPU) or(a uint8, b uint8) uint8 {
 	ans := uint16(a) | uint16(b)
-	c.flags.setZero8(ans)
+	c.flags.setZero(uint8(ans) == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = 0
@@ -194,7 +186,7 @@ func (c *CPU) or(a uint8, b uint8) uint8 {
 
 func (c *CPU) xor(a uint8, b uint8) uint8 {
 	ans := uint16(a) ^ uint16(b)
-	c.flags.setZero8(ans)
+	c.flags.setZero(uint8(ans) == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = 0
@@ -203,41 +195,25 @@ func (c *CPU) xor(a uint8, b uint8) uint8 {
 
 func (c *CPU) cp(a uint8, b uint8) {
 	ans := a - b
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(uint8(ans) == 0)
 	c.flags.N = 1
-	if (b & 0x0F) > (a & 0x0F) {
-		c.flags.H = 1
-	} else {
-		c.flags.H = 0
-	}
-	if b > a {
-		c.flags.C = 1
-	} else {
-		c.flags.C = 0
-	}
+	c.flags.setHalfCarry((b & 0x0F) > (a & 0x0F))
+	c.flags.setCarry(b > a)
 }
 
 func (c *CPU) inc8(val uint8) uint8 {
 	val++
-	c.flags.setZero8(uint16(val))
+	c.flags.setZero(val == 0)
 	c.flags.N = 0
-	if (val & 0xf) == 0 {
-		c.flags.H = 1
-	} else {
-		c.flags.H = 0
-	}
+	c.flags.setHalfCarry((val & 0xF) == 0)
 	return val
 }
 
 func (c *CPU) dec8(val uint8) uint8 {
 	val--
-	c.flags.setZero8(uint16(val))
+	c.flags.setZero(val == 0)
 	c.flags.N = 1
-	if (val & 0xf) == 0xf {
-		c.flags.H = 1
-	} else {
-		c.flags.H = 0
-	}
+	c.flags.setHalfCarry((val & 0xF) == 0xF)
 	return val
 }
 
@@ -269,7 +245,7 @@ func (c *CPU) ret(cond bool) {
 func (c *CPU) rotateLeft(val uint8) uint8 {
 	cy := val >> 7
 	ans := (val << 1) | c.flags.C
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = cy
@@ -279,7 +255,7 @@ func (c *CPU) rotateLeft(val uint8) uint8 {
 func (c *CPU) rotateLeftCarry(val uint8) uint8 {
 	c.flags.C = val >> 7
 	ans := (val << 1) | c.flags.C
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	return ans
@@ -288,7 +264,7 @@ func (c *CPU) rotateLeftCarry(val uint8) uint8 {
 func (c *CPU) rotateRight(val uint8) uint8 {
 	cy := val & 1
 	ans := (val >> 1) | (c.flags.C << 7)
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = cy
@@ -298,7 +274,7 @@ func (c *CPU) rotateRight(val uint8) uint8 {
 func (c *CPU) rotateRightCarry(val uint8) uint8 {
 	c.flags.C = val & 1
 	ans := (val >> 1) | (c.flags.C << 7)
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	return ans
@@ -306,7 +282,7 @@ func (c *CPU) rotateRightCarry(val uint8) uint8 {
 
 func (c *CPU) shiftLeftArith(val uint8) uint8 {
 	ans := (val << 1) & 0xFF
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = val >> 7
@@ -315,7 +291,7 @@ func (c *CPU) shiftLeftArith(val uint8) uint8 {
 
 func (c *CPU) shiftRightArith(val uint8) uint8 {
 	ans := (val & 128) | (val >> 1)
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = val & 1
@@ -324,7 +300,7 @@ func (c *CPU) shiftRightArith(val uint8) uint8 {
 
 func (c *CPU) shiftRightLogical(val uint8) uint8 {
 	ans := val >> 1
-	c.flags.setZero8(uint16(ans))
+	c.flags.setZero(ans == 0)
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = val & 1
@@ -1839,7 +1815,7 @@ func daa(c *CPU) {
 		c.reg.A += 0xFA
 		c.flags.H = 0
 	}
-	c.flags.setZero8(uint16(c.reg.A))
+	c.flags.setZero(c.reg.A == 0)
 }
 
 func di(c *CPU) {

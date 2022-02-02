@@ -8,7 +8,7 @@ var DEBUG = false
 
 func main() {
 	cpu := emu.NewCPU()
-	cpu.LoadRom("roms/3.gb")
+	cpu.LoadRom("roms/1.gb")
 	for {
 		cpu.Execute(DEBUG)
 	}
