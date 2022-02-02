@@ -1,7 +1,5 @@
 package emu
 
-import "fmt"
-
 type Memory struct {
 	mem []uint8
 }
@@ -15,11 +13,5 @@ func (m *Memory) readByte(addr uint16) uint8 {
 }
 
 func (m *Memory) writeByte(addr uint16, val uint8) {
-	if (val == 0x81) && (addr == 0xFF02) {
-		fmt.Printf("%c", m.mem[0xFF01])
-	}
-	if m.mem[0xA000] == 0x80 {
-		fmt.Println("apsjod")
-	}
 	m.mem[addr] = val
 }

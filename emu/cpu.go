@@ -47,6 +47,12 @@ func (c *CPU) readByteHL() uint8 {
 }
 
 func (c *CPU) writeByte(addr uint16, val uint8) {
+	if (val == 0x81) && (addr == 0xFF02) {
+		fmt.Printf("%c", c.readByte(0xFF01))
+	}
+	if c.readByte(0xA000) == 0x80 {
+		fmt.Println("apsjod")
+	}
 	c.mem.writeByte(addr, val)
 }
 
@@ -225,9 +231,8 @@ func (c *CPU) jump(addr uint16, cond bool) {
 	}
 }
 
-func (c *CPU) call(cond bool) {
+func (c *CPU) call(addr uint16, cond bool) {
 	if cond {
-		addr := c.nextTwoBytes()
 		c.push(c.pc)
 		c.pc = addr
 	}
@@ -1426,23 +1431,55 @@ func jrnc(c *CPU) {
 }
 
 func call(c *CPU) {
-	c.call(true)
+	c.call(c.nextTwoBytes(), true)
 }
 
 func callz(c *CPU) {
-	c.call(c.flags.Z == 1)
+	c.call(c.nextTwoBytes(), c.flags.Z == 1)
 }
 
 func callnz(c *CPU) {
-	c.call(c.flags.Z == 0)
+	c.call(c.nextTwoBytes(), c.flags.Z == 0)
 }
 
 func callc(c *CPU) {
-	c.call(c.flags.C == 1)
+	c.call(c.nextTwoBytes(), c.flags.C == 1)
 }
 
 func callnc(c *CPU) {
-	c.call(c.flags.C == 0)
+	c.call(c.nextTwoBytes(), c.flags.C == 0)
+}
+
+func rst0(c *CPU) {
+	c.call(0x00, true)
+}
+
+func rst8(c *CPU) {
+	c.call(0x08, true)
+}
+
+func rst10(c *CPU) {
+	c.call(0x10, true)
+}
+
+func rst18(c *CPU) {
+	c.call(0x18, true)
+}
+
+func rst20(c *CPU) {
+	c.call(0x20, true)
+}
+
+func rst28(c *CPU) {
+	c.call(0x28, true)
+}
+
+func rst30(c *CPU) {
+	c.call(0x30, true)
+}
+
+func rst38(c *CPU) {
+	c.call(0x38, true)
 }
 
 func ret(c *CPU) {
