@@ -78,17 +78,21 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
-func (c *CPU) Execute() {
-	// fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
-	// 	c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L, c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
-	// if C > 5000 {
-	// 	fmt.Scanln()
-	// }
+func (c *CPU) Execute(debug bool) {
+	if debug {
+		c.print()
+	}
 	c.checkIME()
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
 	c.cyc += cyc * 4
 	instr(c)
+}
+
+func (c *CPU) print() {
+	fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
+		c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L,
+		c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 }
 
 func (c *CPU) checkIME() {
