@@ -10,15 +10,18 @@ var (
 	MEM_SIZE int32  = 65536
 	PC       uint16 = 0x0100
 	SP       uint16 = 0xFFFE
+	C               = 0
 )
 
 type CPU struct {
-	mem   *Memory
-	reg   *Registers
-	flags *Flags
-	sp    uint16
-	pc    uint16
-	cyc   int
+	mem      *Memory
+	reg      *Registers
+	flags    *Flags
+	sp       uint16
+	pc       uint16
+	cyc      int
+	imeDelay int
+	ime      bool
 }
 
 func NewCPU() *CPU {
@@ -76,10 +79,25 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 }
 
 func (c *CPU) Execute() {
+	// fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
+	// 	c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L, c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
+	// if C > 5000 {
+	// 	fmt.Scanln()
+	// }
+	c.checkIME()
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
 	c.cyc += cyc * 4
 	instr(c)
+}
+
+func (c *CPU) checkIME() {
+	if c.imeDelay == 2 {
+		c.imeDelay--
+	} else if c.imeDelay == 1 {
+		c.imeDelay--
+		c.ime = true
+	}
 }
 
 func unimplemented(c *CPU) {
@@ -168,33 +186,39 @@ func (c *CPU) cp(a uint8, b uint8) {
 }
 
 func (c *CPU) inc8(val uint8) uint8 {
-	ans := uint16(val) + uint16(1)
-	c.flags.setZero8(ans)
+	val++
+	c.flags.setZero8(uint16(val))
 	c.flags.N = 0
-	if (ans & 0xf) == 0 {
+	if (val & 0xf) == 0 {
 		c.flags.H = 1
 	} else {
 		c.flags.H = 0
 	}
-	return uint8(ans)
+	return val
 }
 
 func (c *CPU) dec8(val uint8) uint8 {
-	ans := uint16(val) - uint16(1)
-	c.flags.setZero8(ans)
+	val--
+	c.flags.setZero8(uint16(val))
 	c.flags.N = 1
-	if (ans & 0xf) == 0xf {
-		c.flags.H = 0
-	} else {
+	if (val & 0xf) == 0xf {
 		c.flags.H = 1
+	} else {
+		c.flags.H = 0
 	}
-	return uint8(ans)
+	return val
 }
 
 func (c *CPU) bit(val uint8, u3 uint8) {
 	c.flags.setZero8(uint16((val << u3) & 1))
 	c.flags.N = 0
 	c.flags.H = 1
+}
+
+func (c *CPU) jump(addr uint16, cond bool) {
+	if cond {
+		c.pc = addr
+	}
 }
 
 func nop(c *CPU) {
@@ -874,10 +898,6 @@ func bit7HL(c *CPU) {
 	c.bit(c.readByteHL(), 7)
 }
 
-func jp(c *CPU) {
-	c.pc = c.nextTwoBytes()
-}
-
 func ldBB(c *CPU) {
 }
 
@@ -1260,4 +1280,62 @@ func ldHLSP(c *CPU) {
 
 func ldSPHL(c *CPU) {
 	c.sp = c.reg.getHL()
+}
+
+func jp(c *CPU) {
+	c.jump(c.nextTwoBytes(), true)
+}
+
+func jpz(c *CPU) {
+	c.jump(c.nextTwoBytes(), c.flags.Z == 1)
+}
+
+func jpnz(c *CPU) {
+	c.jump(c.nextTwoBytes(), c.flags.Z == 0)
+}
+
+func jpc(c *CPU) {
+	c.jump(c.nextTwoBytes(), c.flags.C == 1)
+}
+
+func jpnc(c *CPU) {
+	c.jump(c.nextTwoBytes(), c.flags.C == 0)
+}
+
+func jpHL(c *CPU) {
+	c.jump(c.reg.getHL(), true)
+}
+
+func jr(c *CPU) {
+	e8 := int8(c.nextByte())
+	c.jump(uint16(int(c.pc)+int(e8)), true)
+}
+
+func jrz(c *CPU) {
+	e8 := int8(c.nextByte())
+	c.jump(uint16(int(c.pc)+int(e8)), c.flags.Z == 1)
+}
+
+func jrnz(c *CPU) {
+	e8 := int8(c.nextByte())
+	c.jump(uint16(int(c.pc)+int(e8)), c.flags.Z == 0)
+}
+
+func jrc(c *CPU) {
+	e8 := int8(c.nextByte())
+	c.jump(uint16(int(c.pc)+int(e8)), c.flags.C == 1)
+}
+
+func jrnc(c *CPU) {
+	e8 := int8(c.nextByte())
+	c.jump(uint16(int(c.pc)+int(e8)), c.flags.C == 0)
+}
+
+func di(c *CPU) {
+	c.ime = false
+	c.imeDelay = 0
+}
+
+func ei(c *CPU) {
+	c.imeDelay = 2
 }

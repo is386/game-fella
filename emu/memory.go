@@ -1,5 +1,7 @@
 package emu
 
+import "fmt"
+
 type Memory struct {
 	mem []uint8
 }
@@ -13,5 +15,8 @@ func (m *Memory) readByte(addr uint16) uint8 {
 }
 
 func (m *Memory) writeByte(addr uint16, val uint8) {
+	if (val == 0x81) && (addr == 0xFF02) {
+		fmt.Println("as[fpkas[fka")
+	}
 	m.mem[addr] = val
 }
