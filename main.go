@@ -4,15 +4,12 @@ import (
 	"github.com/is386/GoBoy/emu"
 )
 
-var DEBUG = false
-
-// PASS: 1, 3, 4, 5, 6, 7, 8, 9, 10
-// FAIL: 2, 11
+var (
+	DEBUG = false
+	ROM   = "roms/11.gb"
+)
 
 func main() {
-	cpu := emu.NewCPU(DEBUG)
-	cpu.LoadRom("roms/11.gb")
-	for {
-		cpu.Execute()
-	}
+	gb := emu.NewGameBoy(DEBUG)
+	gb.Run(ROM)
 }

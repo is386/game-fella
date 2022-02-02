@@ -7,52 +7,51 @@ import (
 )
 
 var (
-	MEM_SIZE int32  = 65536
 	PC       uint16 = 0x0100
 	SP       uint16 = 0xFFFE
 	C               = 0
+	INT_ADDR        = map[uint8]uint16{
+		0: 0x40,
+		1: 0x48,
+		2: 0x50,
+		3: 0x58,
+		4: 0x60,
+	}
 )
 
 type CPU struct {
-	mem      *Memory
-	reg      *Registers
-	flags    *Flags
-	sp       uint16
-	pc       uint16
-	cyc      int
-	imeDelay int
-	ime      bool
-	debug    bool
+	gb                      *GameBoy
+	reg                     *Registers
+	flags                   *Flags
+	pc, sp                  uint16
+	cyc                     int
+	halted, ime, imePending bool
 }
 
-func NewCPU(debug bool) *CPU {
-	return &CPU{mem: NewMemory(MEM_SIZE), reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP, debug: debug}
+func NewCPU(gb *GameBoy) *CPU {
+	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
 }
 
-func (c *CPU) LoadRom(filename string) {
+func (c *CPU) loadRom(filename string) {
 	rom, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
 	for i := 0; i < len(rom); i++ {
-		c.mem.writeByte(uint16(i), rom[i])
+		c.writeByte(uint16(i), rom[i])
 	}
-	c.mem.writeByte(0xFF44, 0x90)
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {
-	return c.mem.readByte(addr)
+	return c.gb.mem.readByte(addr)
 }
 
 func (c *CPU) readByteHL() uint8 {
-	return c.readByte(c.reg.getHL())
+	return c.gb.mem.readByte(c.reg.getHL())
 }
 
 func (c *CPU) writeByte(addr uint16, val uint8) {
-	if !c.debug && (val == 0x81) && (addr == 0xFF02) {
-		fmt.Printf("%c", c.readByte(0xFF01))
-	}
-	c.mem.writeByte(addr, val)
+	c.gb.mem.writeByte(addr, val)
 }
 
 func (c *CPU) writeByteHL(val uint8) {
@@ -83,11 +82,8 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
-func (c *CPU) Execute() {
-	if c.debug {
-		c.print()
-	}
-	c.checkIME()
+func (c *CPU) execute() {
+	c.cyc += c.checkIME()
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
 	c.cyc += cyc * 4
@@ -99,21 +95,40 @@ func (c *CPU) print() {
 		c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L,
 		c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 }
-
-func (c *CPU) checkIME() {
-	if c.imeDelay == 2 {
-		c.imeDelay--
-	} else if c.imeDelay == 1 {
-		c.imeDelay--
+func (c *CPU) checkIME() int {
+	if c.imePending {
 		c.ime = true
+		c.imePending = false
+		return 0
 	}
+
+	if !c.ime && !c.halted {
+		return 0
+	}
+
+	intF := c.readByte(0xFF0F) | 0xE0
+	intE := c.readByte(0xFFFF)
+	if intF > 0 {
+		for i := 0; i < 5; i++ {
+			if (((intF >> i) & 1) == 1) && (((intE >> i) & 1) == 1) {
+				c.interrupt(uint8(i))
+				return 20
+			}
+		}
+	}
+	return 0
+}
+
+func (c *CPU) interrupt(i uint8) {
+	c.ime = false
+	intF := c.readByte(0xFF0F)
+	c.writeByte(0xFF0F, c.res(intF, i))
+	c.push(c.pc)
+	c.pc = INT_ADDR[i]
 }
 
 func unimplemented(c *CPU) {
-	if c.mem.mem[c.pc-2] == 0xCB {
-		fmt.Println("CB instruction")
-	}
-	fmt.Printf("unimplemented: 0x%02X\n", c.mem.mem[c.pc-1])
+	fmt.Println("unimplemented")
 	os.Exit(0)
 }
 
@@ -2356,11 +2371,10 @@ func daa(c *CPU) {
 
 func di(c *CPU) {
 	c.ime = false
-	c.imeDelay = 0
 }
 
 func ei(c *CPU) {
-	c.imeDelay = 2
+	c.imePending = true
 }
 
 func scf(c *CPU) {
