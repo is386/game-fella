@@ -277,6 +277,33 @@ func (c *CPU) rotateRightCarry(val uint8) uint8 {
 	return ans
 }
 
+func (c *CPU) shiftLeftArith(val uint8) uint8 {
+	ans := (val << 1) & 0xFF
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = val >> 7
+	return ans
+}
+
+func (c *CPU) shiftRightArith(val uint8) uint8 {
+	ans := (val & 128) | (val >> 1)
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = val & 1
+	return ans
+}
+
+func (c *CPU) shiftRightLogical(val uint8) uint8 {
+	ans := val >> 1
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = val & 1
+	return ans
+}
+
 func (c *CPU) push(val uint16) {
 	c.writeByte(c.sp-1, uint8(val>>8))
 	c.writeByte(c.sp-2, uint8(val&0xff))
@@ -1615,6 +1642,105 @@ func rrcHL(c *CPU) {
 func rrcA(c *CPU) {
 	c.reg.A = c.rotateRightCarry(c.reg.A)
 	c.flags.Z = 0
+}
+
+func slaB(c *CPU) {
+	c.reg.B = c.shiftLeftArith(c.reg.B)
+}
+
+func slaC(c *CPU) {
+	c.reg.C = c.shiftLeftArith(c.reg.C)
+}
+
+func slaD(c *CPU) {
+	c.reg.D = c.shiftLeftArith(c.reg.D)
+}
+
+func slaE(c *CPU) {
+	c.reg.E = c.shiftLeftArith(c.reg.E)
+}
+
+func slaH(c *CPU) {
+	c.reg.H = c.shiftLeftArith(c.reg.H)
+}
+
+func slaL(c *CPU) {
+	c.reg.L = c.shiftLeftArith(c.reg.L)
+}
+
+func slaHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.shiftLeftArith(b))
+}
+
+func slaA(c *CPU) {
+	c.reg.A = c.shiftLeftArith(c.reg.A)
+}
+
+func sraB(c *CPU) {
+	c.reg.B = c.shiftRightArith(c.reg.B)
+}
+
+func sraC(c *CPU) {
+	c.reg.C = c.shiftRightArith(c.reg.C)
+}
+
+func sraD(c *CPU) {
+	c.reg.D = c.shiftRightArith(c.reg.D)
+}
+
+func sraE(c *CPU) {
+	c.reg.E = c.shiftRightArith(c.reg.E)
+}
+
+func sraH(c *CPU) {
+	c.reg.H = c.shiftRightArith(c.reg.H)
+}
+
+func sraL(c *CPU) {
+	c.reg.L = c.shiftRightArith(c.reg.L)
+}
+
+func sraHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.shiftRightArith(b))
+}
+
+func sraA(c *CPU) {
+	c.reg.A = c.shiftRightArith(c.reg.A)
+}
+
+func srlB(c *CPU) {
+	c.reg.B = c.shiftRightLogical(c.reg.B)
+}
+
+func srlC(c *CPU) {
+	c.reg.C = c.shiftRightLogical(c.reg.C)
+}
+
+func srlD(c *CPU) {
+	c.reg.D = c.shiftRightLogical(c.reg.D)
+}
+
+func srlE(c *CPU) {
+	c.reg.E = c.shiftRightLogical(c.reg.E)
+}
+
+func srlH(c *CPU) {
+	c.reg.H = c.shiftRightLogical(c.reg.H)
+}
+
+func srlL(c *CPU) {
+	c.reg.L = c.shiftRightLogical(c.reg.L)
+}
+
+func srlHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.shiftRightLogical(b))
+}
+
+func srlA(c *CPU) {
+	c.reg.A = c.shiftRightLogical(c.reg.A)
 }
 
 func di(c *CPU) {
