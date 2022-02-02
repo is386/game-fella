@@ -1405,6 +1405,44 @@ func reti(c *CPU) {
 	c.ime = true
 }
 
+func popAF(c *CPU) {
+	af := c.pop()
+	c.reg.A = uint8(af >> 8)
+	psw := uint8(af & 0xff)
+	c.flags.Z = (psw >> 7) & 1
+	c.flags.N = (psw >> 6) & 1
+	c.flags.H = (psw >> 5) & 1
+	c.flags.C = (psw >> 4) & 1
+}
+
+func popBC(c *CPU) {
+	c.reg.setBC(c.pop())
+}
+
+func popDE(c *CPU) {
+	c.reg.setDE(c.pop())
+}
+
+func popHL(c *CPU) {
+	c.reg.setHL(c.pop())
+}
+
+func pushAF(c *CPU) {
+	c.push((uint16(c.reg.A) << 8) | uint16(c.flags.getF()))
+}
+
+func pushBC(c *CPU) {
+	c.push(c.reg.getBC())
+}
+
+func pushDE(c *CPU) {
+	c.push(c.reg.getDE())
+}
+
+func pushHL(c *CPU) {
+	c.push(c.reg.getHL())
+}
+
 func di(c *CPU) {
 	c.ime = false
 	c.imeDelay = 0
