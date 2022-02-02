@@ -218,6 +218,14 @@ func (c *CPU) bit(val uint8, u3 uint8) {
 	c.flags.H = 1
 }
 
+func (c *CPU) res(val uint8, u3 uint8) uint8 {
+	return val & ^(1 << u3)
+}
+
+func (c *CPU) set(val uint8, u3 uint8) uint8 {
+	return val | (1 << u3)
+}
+
 func (c *CPU) jump(addr uint16, cond bool) {
 	if cond {
 		c.pc = addr
@@ -991,6 +999,518 @@ func bit7HL(c *CPU) {
 	c.bit(c.readByteHL(), 7)
 }
 
+func res0B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 0)
+}
+
+func res0C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 0)
+}
+
+func res0D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 0)
+}
+
+func res0E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 0)
+}
+
+func res0H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 0)
+}
+
+func res0L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 0)
+}
+
+func res0A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 0)
+}
+
+func res1B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 1)
+}
+
+func res1C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 1)
+}
+
+func res1D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 1)
+}
+
+func res1E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 1)
+}
+
+func res1H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 1)
+}
+
+func res1L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 1)
+}
+
+func res1A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 1)
+}
+
+func res2B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 2)
+}
+
+func res2C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 2)
+}
+
+func res2D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 2)
+}
+
+func res2E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 2)
+}
+
+func res2H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 2)
+}
+
+func res2L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 2)
+}
+
+func res2A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 2)
+}
+
+func res3B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 3)
+}
+
+func res3C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 3)
+}
+
+func res3D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 3)
+}
+
+func res3E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 3)
+}
+
+func res3H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 3)
+}
+
+func res3L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 3)
+}
+
+func res3A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 3)
+}
+
+func res4B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 4)
+}
+
+func res4C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 4)
+}
+
+func res4D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 4)
+}
+
+func res4E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 4)
+}
+
+func res4H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 4)
+}
+
+func res4L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 4)
+}
+
+func res4A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 4)
+}
+
+func res5B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 5)
+}
+
+func res5C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 5)
+}
+
+func res5D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 5)
+}
+
+func res5E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 5)
+}
+
+func res5H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 5)
+}
+
+func res5L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 5)
+}
+
+func res5A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 5)
+}
+
+func res6B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 6)
+}
+
+func res6C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 6)
+}
+
+func res6D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 6)
+}
+
+func res6E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 6)
+}
+
+func res6H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 6)
+}
+
+func res6L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 6)
+}
+
+func res6A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 6)
+}
+
+func res7B(c *CPU) {
+	c.reg.B = c.res(c.reg.B, 7)
+}
+
+func res7C(c *CPU) {
+	c.reg.C = c.res(c.reg.C, 7)
+}
+
+func res7D(c *CPU) {
+	c.reg.D = c.res(c.reg.D, 7)
+}
+
+func res7E(c *CPU) {
+	c.reg.E = c.res(c.reg.E, 7)
+}
+
+func res7H(c *CPU) {
+	c.reg.H = c.res(c.reg.H, 7)
+}
+
+func res7L(c *CPU) {
+	c.reg.L = c.res(c.reg.L, 7)
+}
+
+func res7A(c *CPU) {
+	c.reg.A = c.res(c.reg.A, 7)
+}
+
+func res0HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 0))
+}
+
+func res1HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 1))
+}
+
+func res2HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 2))
+}
+
+func res3HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 3))
+}
+
+func res4HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 4))
+}
+
+func res5HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 5))
+}
+
+func res6HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 6))
+}
+
+func res7HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.res(c.readByteHL(), 7))
+}
+
+func set0B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 0)
+}
+
+func set0C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 0)
+}
+
+func set0D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 0)
+}
+
+func set0E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 0)
+}
+
+func set0H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 0)
+}
+
+func set0L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 0)
+}
+
+func set0A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 0)
+}
+
+func set1B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 1)
+}
+
+func set1C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 1)
+}
+
+func set1D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 1)
+}
+
+func set1E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 1)
+}
+
+func set1H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 1)
+}
+
+func set1L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 1)
+}
+
+func set1A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 1)
+}
+
+func set2B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 2)
+}
+
+func set2C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 2)
+}
+
+func set2D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 2)
+}
+
+func set2E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 2)
+}
+
+func set2H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 2)
+}
+
+func set2L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 2)
+}
+
+func set2A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 2)
+}
+
+func set3B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 3)
+}
+
+func set3C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 3)
+}
+
+func set3D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 3)
+}
+
+func set3E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 3)
+}
+
+func set3H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 3)
+}
+
+func set3L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 3)
+}
+
+func set3A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 3)
+}
+
+func set4B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 4)
+}
+
+func set4C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 4)
+}
+
+func set4D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 4)
+}
+
+func set4E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 4)
+}
+
+func set4H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 4)
+}
+
+func set4L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 4)
+}
+
+func set4A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 4)
+}
+
+func set5B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 5)
+}
+
+func set5C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 5)
+}
+
+func set5D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 5)
+}
+
+func set5E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 5)
+}
+
+func set5H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 5)
+}
+
+func set5L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 5)
+}
+
+func set5A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 5)
+}
+
+func set6B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 6)
+}
+
+func set6C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 6)
+}
+
+func set6D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 6)
+}
+
+func set6E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 6)
+}
+
+func set6H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 6)
+}
+
+func set6L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 6)
+}
+
+func set6A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 6)
+}
+
+func set7B(c *CPU) {
+	c.reg.B = c.set(c.reg.B, 7)
+}
+
+func set7C(c *CPU) {
+	c.reg.C = c.set(c.reg.C, 7)
+}
+
+func set7D(c *CPU) {
+	c.reg.D = c.set(c.reg.D, 7)
+}
+
+func set7E(c *CPU) {
+	c.reg.E = c.set(c.reg.E, 7)
+}
+
+func set7H(c *CPU) {
+	c.reg.H = c.set(c.reg.H, 7)
+}
+
+func set7L(c *CPU) {
+	c.reg.L = c.set(c.reg.L, 7)
+}
+
+func set7A(c *CPU) {
+	c.reg.A = c.set(c.reg.A, 7)
+}
+
+func set0HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 0))
+}
+
+func set1HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 1))
+}
+
+func set2HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 2))
+}
+
+func set3HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 3))
+}
+
+func set4HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 4))
+}
+
+func set5HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 5))
+}
+
+func set6HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 6))
+}
+
+func set7HL(c *CPU) {
+	c.writeByte(c.reg.getHL(), c.set(c.readByteHL(), 7))
+}
+
 func swapB(c *CPU) {
 	c.reg.B = c.swap(c.reg.B)
 }
@@ -1016,7 +1536,7 @@ func swapL(c *CPU) {
 }
 
 func swapHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.swap(b))
 }
 
@@ -1276,27 +1796,27 @@ func ldiHL(c *CPU) {
 }
 
 func ldBHL(c *CPU) {
-	c.reg.B = c.readByte(c.reg.getHL())
+	c.reg.B = c.readByteHL()
 }
 
 func ldCHL(c *CPU) {
-	c.reg.C = c.readByte(c.reg.getHL())
+	c.reg.C = c.readByteHL()
 }
 
 func ldDHL(c *CPU) {
-	c.reg.D = c.readByte(c.reg.getHL())
+	c.reg.D = c.readByteHL()
 }
 
 func ldEHL(c *CPU) {
-	c.reg.E = c.readByte(c.reg.getHL())
+	c.reg.E = c.readByteHL()
 }
 
 func ldHHL(c *CPU) {
-	c.reg.H = c.readByte(c.reg.getHL())
+	c.reg.H = c.readByteHL()
 }
 
 func ldLHL(c *CPU) {
-	c.reg.L = c.readByte(c.reg.getHL())
+	c.reg.L = c.readByteHL()
 }
 
 func ldBCA(c *CPU) {
@@ -1338,7 +1858,7 @@ func ldADE(c *CPU) {
 }
 
 func ldAHL(c *CPU) {
-	c.reg.A = c.readByte(c.reg.getHL())
+	c.reg.A = c.readByteHL()
 }
 
 func ldA16(c *CPU) {
@@ -1586,7 +2106,7 @@ func rlL(c *CPU) {
 }
 
 func rlHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.rotateLeft(b))
 }
 
@@ -1624,7 +2144,7 @@ func rlcL(c *CPU) {
 }
 
 func rlcHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.rotateLeftCarry(b))
 }
 
@@ -1662,7 +2182,7 @@ func rrL(c *CPU) {
 }
 
 func rrHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.rotateRight(b))
 }
 
@@ -1700,7 +2220,7 @@ func rrcL(c *CPU) {
 }
 
 func rrcHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.rotateRightCarry(b))
 }
 
@@ -1738,7 +2258,7 @@ func slaL(c *CPU) {
 }
 
 func slaHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.shiftLeftArith(b))
 }
 
@@ -1771,7 +2291,7 @@ func sraL(c *CPU) {
 }
 
 func sraHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.shiftRightArith(b))
 }
 
@@ -1804,7 +2324,7 @@ func srlL(c *CPU) {
 }
 
 func srlHL(c *CPU) {
-	b := c.readByte(c.reg.getHL())
+	b := c.readByteHL()
 	c.writeByte(c.reg.getHL(), c.shiftRightLogical(b))
 }
 
