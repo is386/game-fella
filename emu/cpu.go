@@ -239,6 +239,44 @@ func (c *CPU) ret(cond bool) {
 	}
 }
 
+func (c *CPU) rotateLeft(val uint8) uint8 {
+	cy := val >> 7
+	ans := (val << 1) | c.flags.C
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = cy
+	return ans
+}
+
+func (c *CPU) rotateLeftCarry(val uint8) uint8 {
+	c.flags.C = val >> 7
+	ans := (val << 1) | c.flags.C
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	return ans
+}
+
+func (c *CPU) rotateRight(val uint8) uint8 {
+	cy := val & 1
+	ans := (val << 1) | (c.flags.C << 7)
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	c.flags.C = cy
+	return ans
+}
+
+func (c *CPU) rotateRightCarry(val uint8) uint8 {
+	c.flags.C = val & 1
+	ans := (val << 1) | (c.flags.C << 7)
+	c.flags.setZero8(uint16(ans))
+	c.flags.N = 0
+	c.flags.H = 0
+	return ans
+}
+
 func (c *CPU) push(val uint16) {
 	c.writeByte(c.sp-1, uint8(val>>8))
 	c.writeByte(c.sp-2, uint8(val&0xff))
@@ -1441,6 +1479,142 @@ func pushDE(c *CPU) {
 
 func pushHL(c *CPU) {
 	c.push(c.reg.getHL())
+}
+
+func rlB(c *CPU) {
+	c.reg.B = c.rotateLeft(c.reg.B)
+}
+
+func rlC(c *CPU) {
+	c.reg.C = c.rotateLeft(c.reg.C)
+}
+
+func rlD(c *CPU) {
+	c.reg.D = c.rotateLeft(c.reg.D)
+}
+
+func rlE(c *CPU) {
+	c.reg.E = c.rotateLeft(c.reg.E)
+}
+
+func rlH(c *CPU) {
+	c.reg.H = c.rotateLeft(c.reg.H)
+}
+
+func rlL(c *CPU) {
+	c.reg.L = c.rotateLeft(c.reg.L)
+}
+
+func rlHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.rotateLeft(b))
+}
+
+func rlA(c *CPU) {
+	c.reg.A = c.rotateLeft(c.reg.A)
+	c.flags.Z = 0
+}
+
+func rlcB(c *CPU) {
+	c.reg.B = c.rotateLeftCarry(c.reg.B)
+}
+
+func rlcC(c *CPU) {
+	c.reg.C = c.rotateLeftCarry(c.reg.C)
+}
+
+func rlcD(c *CPU) {
+	c.reg.D = c.rotateLeftCarry(c.reg.D)
+}
+
+func rlcE(c *CPU) {
+	c.reg.E = c.rotateLeftCarry(c.reg.E)
+}
+
+func rlcH(c *CPU) {
+	c.reg.H = c.rotateLeftCarry(c.reg.H)
+}
+
+func rlcL(c *CPU) {
+	c.reg.L = c.rotateLeftCarry(c.reg.L)
+}
+
+func rlcHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.rotateLeftCarry(b))
+}
+
+func rlcA(c *CPU) {
+	c.reg.A = c.rotateLeftCarry(c.reg.A)
+	c.flags.Z = 0
+}
+
+func rrB(c *CPU) {
+	c.reg.B = c.rotateRight(c.reg.B)
+}
+
+func rrC(c *CPU) {
+	c.reg.C = c.rotateRight(c.reg.C)
+}
+
+func rrD(c *CPU) {
+	c.reg.D = c.rotateRight(c.reg.D)
+}
+
+func rrE(c *CPU) {
+	c.reg.E = c.rotateRight(c.reg.E)
+}
+
+func rrH(c *CPU) {
+	c.reg.H = c.rotateRight(c.reg.H)
+}
+
+func rrL(c *CPU) {
+	c.reg.L = c.rotateRight(c.reg.L)
+}
+
+func rrHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.rotateRight(b))
+}
+
+func rrA(c *CPU) {
+	c.reg.A = c.rotateRight(c.reg.A)
+	c.flags.Z = 0
+}
+
+func rrcB(c *CPU) {
+	c.reg.B = c.rotateRightCarry(c.reg.B)
+}
+
+func rrcC(c *CPU) {
+	c.reg.C = c.rotateRightCarry(c.reg.C)
+}
+
+func rrcD(c *CPU) {
+	c.reg.D = c.rotateRightCarry(c.reg.D)
+}
+
+func rrcE(c *CPU) {
+	c.reg.E = c.rotateRightCarry(c.reg.E)
+}
+
+func rrcH(c *CPU) {
+	c.reg.H = c.rotateRightCarry(c.reg.H)
+}
+
+func rrcL(c *CPU) {
+	c.reg.L = c.rotateRightCarry(c.reg.L)
+}
+
+func rrcHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.rotateRightCarry(b))
+}
+
+func rrcA(c *CPU) {
+	c.reg.A = c.rotateRightCarry(c.reg.A)
+	c.flags.Z = 0
 }
 
 func di(c *CPU) {
