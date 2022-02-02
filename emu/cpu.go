@@ -36,6 +36,7 @@ func (c *CPU) LoadRom(filename string) {
 	for i := 0; i < len(rom); i++ {
 		c.mem.writeByte(uint16(i), rom[i])
 	}
+	c.mem.writeByte(0xFF44, 0x90)
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {
@@ -49,6 +50,9 @@ func (c *CPU) readByteHL() uint8 {
 func (c *CPU) writeByte(addr uint16, val uint8) {
 	if (val == 0x81) && (addr == 0xFF02) {
 		fmt.Printf("%c", c.readByte(0xFF01))
+		if c.readByte(0xFF01) == 100 {
+			os.Exit(0)
+		}
 	}
 	if c.readByte(0xA000) == 0x80 {
 		fmt.Println("apsjod")
@@ -130,16 +134,15 @@ func (c *CPU) add8(a uint8, b uint8, cy uint8) uint8 {
 	ans := uint16(a) + uint16(b) + uint16(cy)
 	c.flags.setZero8(ans)
 	c.flags.N = 0
-	c.flags.setHalfCarryAdd8((a & 0xF), (b & 0xF))
+	c.flags.setHalfCarryAdd8(a, b, cy)
 	c.flags.setCarryAdd8(ans)
 	return uint8(ans)
 }
 
-func (c *CPU) add16(a uint16, b uint16, cy uint8) uint16 {
-	ans := uint32(a) + uint32(b) + uint32(cy)
-	c.flags.setZero16(ans)
+func (c *CPU) add16(a uint16, b uint16) uint16 {
+	ans := uint32(a) + uint32(b)
 	c.flags.N = 0
-	c.flags.setHalfCarryAdd16((a & 0xFF), (b & 0xFF))
+	c.flags.setHalfCarryAdd16(a, ans)
 	c.flags.setCarryAdd16(ans)
 	return uint16(ans)
 }
@@ -148,6 +151,7 @@ func (c *CPU) sub(a uint8, b uint8, cy uint8) uint8 {
 	cy = flip(cy)
 	ans := c.add8(a, ^b, cy)
 	c.flags.N = 1
+	c.flags.H = flip(c.flags.H)
 	c.flags.C = flip(c.flags.C)
 	return uint8(ans)
 }
@@ -180,10 +184,10 @@ func (c *CPU) xor(a uint8, b uint8) uint8 {
 }
 
 func (c *CPU) cp(a uint8, b uint8) {
-	ans := uint16(a) - uint16(b)
-	c.flags.setZero8(ans)
+	ans := a - b
+	c.flags.setZero8(uint16(ans))
 	c.flags.N = 1
-	if (^(uint16(a) ^ ans ^ uint16(b)) & 0x10) > 0 {
+	if (b & 0x0F) > (a & 0x0F) {
 		c.flags.H = 1
 	} else {
 		c.flags.H = 0
@@ -220,7 +224,7 @@ func (c *CPU) dec8(val uint8) uint8 {
 }
 
 func (c *CPU) bit(val uint8, u3 uint8) {
-	c.flags.setZero8(uint16((val << u3) & 1))
+	c.flags.Z = flip((val >> u3) & 1)
 	c.flags.N = 0
 	c.flags.H = 1
 }
@@ -265,7 +269,7 @@ func (c *CPU) rotateLeftCarry(val uint8) uint8 {
 
 func (c *CPU) rotateRight(val uint8) uint8 {
 	cy := val & 1
-	ans := (val << 1) | (c.flags.C << 7)
+	ans := (val >> 1) | (c.flags.C << 7)
 	c.flags.setZero8(uint16(ans))
 	c.flags.N = 0
 	c.flags.H = 0
@@ -275,7 +279,7 @@ func (c *CPU) rotateRight(val uint8) uint8 {
 
 func (c *CPU) rotateRightCarry(val uint8) uint8 {
 	c.flags.C = val & 1
-	ans := (val << 1) | (c.flags.C << 7)
+	ans := (val >> 1) | (c.flags.C << 7)
 	c.flags.setZero8(uint16(ans))
 	c.flags.N = 0
 	c.flags.H = 0
@@ -307,6 +311,10 @@ func (c *CPU) shiftRightLogical(val uint8) uint8 {
 	c.flags.H = 0
 	c.flags.C = val & 1
 	return ans
+}
+
+func (c *CPU) swap(val uint8) uint8 {
+	return (val << 4) | (val >> 4)
 }
 
 func (c *CPU) push(val uint16) {
@@ -396,28 +404,28 @@ func aci(c *CPU) {
 }
 
 func addHLBC(c *CPU) {
-	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getBC(), 0))
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getBC()))
 }
 
 func addHLDE(c *CPU) {
-	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getDE(), 0))
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getDE()))
 }
 
 func addHLHL(c *CPU) {
-	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getHL(), 0))
+	c.reg.setHL(c.add16(c.reg.getHL(), c.reg.getHL()))
 }
 
 func addHLSP(c *CPU) {
-	c.reg.setHL(c.add16(c.reg.getHL(), c.sp, 0))
+	c.reg.setHL(c.add16(c.reg.getHL(), c.sp))
 }
 
 func addSP(c *CPU) {
 	e8 := int8(c.nextByte())
 	if e8 < 0 {
 		e8 *= -1
-		c.add16(c.sp, ^uint16(e8), 0)
+		c.add16(c.sp, ^uint16(e8))
 	} else {
-		c.add16(c.sp, uint16(e8), 0)
+		c.add16(c.sp, uint16(e8))
 	}
 	c.flags.Z = 0
 	c.flags.N = 0
@@ -997,6 +1005,39 @@ func bit7HL(c *CPU) {
 	c.bit(c.readByteHL(), 7)
 }
 
+func swapB(c *CPU) {
+	c.reg.B = c.swap(c.reg.B)
+}
+
+func swapC(c *CPU) {
+	c.reg.B = c.swap(c.reg.C)
+}
+
+func swapD(c *CPU) {
+	c.reg.D = c.swap(c.reg.D)
+}
+
+func swapE(c *CPU) {
+	c.reg.E = c.swap(c.reg.E)
+}
+
+func swapH(c *CPU) {
+	c.reg.H = c.swap(c.reg.H)
+}
+
+func swapL(c *CPU) {
+	c.reg.L = c.swap(c.reg.L)
+}
+
+func swapHL(c *CPU) {
+	b := c.readByte(c.reg.getHL())
+	c.writeByte(c.reg.getHL(), c.swap(b))
+}
+
+func swapA(c *CPU) {
+	c.reg.A = c.swap(c.reg.A)
+}
+
 func ldBB(c *CPU) {
 }
 
@@ -1367,9 +1408,9 @@ func ldHLSP(c *CPU) {
 	e8 := int8(c.nextByte())
 	if e8 < 0 {
 		e8 *= -1
-		c.add16(c.sp, ^uint16(e8), 0)
+		c.add16(c.sp, ^uint16(e8))
 	} else {
-		c.add16(c.sp, uint16(e8), 0)
+		c.add16(c.sp, uint16(e8))
 	}
 	c.reg.setHL(c.sp)
 	c.sp = og

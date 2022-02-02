@@ -21,7 +21,7 @@ func (f *Flags) getF() uint8 {
 }
 
 func (f *Flags) setZero8(val uint16) {
-	if val == 0 {
+	if uint8(val) == 0 {
 		f.Z = 1
 	} else {
 		f.Z = 0
@@ -29,7 +29,7 @@ func (f *Flags) setZero8(val uint16) {
 }
 
 func (f *Flags) setZero16(val uint32) {
-	if val == 0 {
+	if uint16(val) == 0 {
 		f.Z = 1
 	} else {
 		f.Z = 0
@@ -52,16 +52,16 @@ func (f *Flags) setCarryAdd16(val uint32) {
 	}
 }
 
-func (f *Flags) setHalfCarryAdd8(a uint8, b uint8) {
-	if a+b > 0xF {
+func (f *Flags) setHalfCarryAdd8(a uint8, b uint8, cy uint8) {
+	if ((a & 0xF) + (b & 0xF) + cy) > 0xF {
 		f.H = 1
 	} else {
 		f.H = 0
 	}
 }
 
-func (f *Flags) setHalfCarryAdd16(a uint16, b uint16) {
-	if a+b > 0xFF {
+func (f *Flags) setHalfCarryAdd16(a uint16, ans uint32) {
+	if uint32(a&0xFFF) > (ans & 0xFFF) {
 		f.H = 1
 	} else {
 		f.H = 0
