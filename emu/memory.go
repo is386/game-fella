@@ -1,5 +1,7 @@
 package emu
 
+import "github.com/is386/GoBoy/emu/bits"
+
 var (
 	MEM_SIZE        = 65536
 	DIV      uint16 = 0xFF04
@@ -21,41 +23,6 @@ type Memory struct {
 
 func NewMemory(gb *GameBoy) *Memory {
 	mem := Memory{gb: gb}
-	mem.hram[0x04] = 0x1E
-	mem.hram[0x05] = 0x00
-	mem.hram[0x06] = 0x00
-	mem.hram[0x07] = 0xF8
-	mem.hram[0x0F] = 0xE1
-	mem.hram[0x10] = 0x80
-	mem.hram[0x11] = 0xBF
-	mem.hram[0x12] = 0xF3
-	mem.hram[0x14] = 0xBF
-	mem.hram[0x16] = 0x3F
-	mem.hram[0x17] = 0x00
-	mem.hram[0x19] = 0xBF
-	mem.hram[0x1A] = 0x7F
-	mem.hram[0x1B] = 0xFF
-	mem.hram[0x1C] = 0x9F
-	mem.hram[0x1E] = 0xBF
-	mem.hram[0x20] = 0xFF
-	mem.hram[0x21] = 0x00
-	mem.hram[0x22] = 0x00
-	mem.hram[0x23] = 0xBF
-	mem.hram[0x24] = 0x77
-	mem.hram[0x25] = 0xF3
-	mem.hram[0x26] = 0xF1
-	mem.hram[0x40] = 0x91
-	mem.hram[0x41] = 0x85
-	mem.hram[0x42] = 0x00
-	mem.hram[0x43] = 0x00
-	mem.hram[0x45] = 0x00
-	mem.hram[0x47] = 0xFC
-	mem.hram[0x48] = 0xFF
-	mem.hram[0x49] = 0xFF
-	mem.hram[0x4A] = 0x00
-	mem.hram[0x4B] = 0x00
-	mem.hram[0xFF] = 0x00
-	mem.wramBank = 1
 	return &mem
 }
 
@@ -270,7 +237,6 @@ func (m *Memory) doDMATransfer(val uint8) {
 }
 
 func (m *Memory) doHDMATransfer() {
-	return
 }
 
 func (m *Memory) readVRAM(addr uint16) uint8 {
@@ -290,7 +256,7 @@ func (m *Memory) incrDiv() {
 }
 
 func (m *Memory) isTimerEnabled() bool {
-	return ((m.hram[0x07] >> 2) & 1) == 1
+	return bits.Test(m.hram[0x07], 2)
 }
 
 func (m *Memory) getTimerFreq() uint8 {
@@ -309,7 +275,7 @@ func (m *Memory) updateTima() {
 
 func (m *Memory) writeInterrupt(i int) {
 	req := m.hram[0x0F] | 0xE0
-	req = req | (1 << i)
+	req = bits.Set(req, uint8(i))
 	m.writeByte(0xFF0F, req)
 }
 
@@ -318,5 +284,5 @@ func (m *Memory) getLCDStatus() uint8 {
 }
 
 func (m *Memory) isLCDEnabled() bool {
-	return ((m.hram[0x40] >> 7) & 1) == 1
+	return bits.Test(m.hram[0x40], 7)
 }

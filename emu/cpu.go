@@ -2,6 +2,8 @@ package emu
 
 import (
 	"fmt"
+
+	"github.com/is386/GoBoy/emu/bits"
 )
 
 var (
@@ -220,11 +222,11 @@ func (c *CPU) bit(val uint8, u3 uint8) {
 }
 
 func (c *CPU) res(val uint8, u3 uint8) uint8 {
-	return val & ^(1 << u3)
+	return bits.Reset(val, u3)
 }
 
 func (c *CPU) set(val uint8, u3 uint8) uint8 {
-	return val | (1 << u3)
+	return bits.Set(val, u3)
 }
 
 func (c *CPU) jump(addr uint16, cond bool) {

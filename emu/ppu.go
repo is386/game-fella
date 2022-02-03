@@ -1,5 +1,7 @@
 package emu
 
+import "github.com/is386/GoBoy/emu/bits"
+
 var (
 	WIDTH          = 160
 	HEIGHT         = 144
@@ -65,8 +67,8 @@ func (p *PPU) setLCDStatus() {
 		p.scanlineCount = 456
 		p.gb.mem.writeHRAM(0x44, 0)
 		stat &= 252
-		stat = p.gb.cpu.res(stat, 0)
-		stat = p.gb.cpu.res(stat, 1)
+		stat = bits.Reset(stat, 0)
+		stat = bits.Reset(stat, 1)
 		p.gb.mem.writeByte(0xFF41, stat)
 		return
 	}
@@ -79,25 +81,25 @@ func (p *PPU) setLCDStatus() {
 
 	if currLine >= MODE1 {
 		mode = 1
-		stat = p.gb.cpu.set(stat, 0)
-		stat = p.gb.cpu.res(stat, 1)
+		stat = bits.Set(stat, 0)
+		stat = bits.Reset(stat, 1)
 		sendInt = ((stat >> 4) & 1) == 1
 	} else if p.scanlineCount >= MODE2 {
 		mode = 2
-		stat = p.gb.cpu.res(stat, 0)
-		stat = p.gb.cpu.set(stat, 1)
+		stat = bits.Reset(stat, 0)
+		stat = bits.Set(stat, 1)
 		sendInt = ((stat >> 5) & 1) == 1
 	} else if p.scanlineCount >= MODE3 {
 		mode = 3
-		stat = p.gb.cpu.set(stat, 0)
-		stat = p.gb.cpu.set(stat, 1)
+		stat = bits.Set(stat, 0)
+		stat = bits.Set(stat, 1)
 		if mode != currMode {
 			p.drawScanline(currLine)
 		}
 	} else {
 		mode = 0
-		stat = p.gb.cpu.res(stat, 0)
-		stat = p.gb.cpu.res(stat, 1)
+		stat = bits.Reset(stat, 0)
+		stat = bits.Reset(stat, 1)
 		if mode != currMode {
 			p.gb.mem.doHDMATransfer()
 		}
@@ -108,23 +110,23 @@ func (p *PPU) setLCDStatus() {
 	}
 
 	if currLine == p.gb.mem.readHRAM(0x45) {
-		stat = p.gb.cpu.set(stat, 2)
-		if ((stat >> 6) & 1) == 1 {
+		stat = bits.Set(stat, 2)
+		if bits.Test(stat, 6) {
 			p.gb.mem.writeInterrupt(1)
 		}
 	} else {
-		stat = p.gb.cpu.res(stat, 2)
+		stat = bits.Reset(stat, 2)
 	}
 	p.gb.mem.writeHRAM(0x41, stat)
 }
 
 func (p *PPU) drawScanline(scanline uint8) {
 	lcdc := p.gb.mem.readByte(LCDC)
-	if ((lcdc >> 0) & 1) == 1 {
+	if bits.Test(lcdc, 0) {
 		p.renderTiles(lcdc, scanline)
 	}
 
-	if ((lcdc >> 1) & 1) == 1 {
+	if bits.Test(lcdc, 1) {
 		p.renderSprites(lcdc, int32(scanline))
 	}
 }
@@ -166,14 +168,14 @@ func (p *PPU) renderTiles(lcdc uint8, scanline uint8) {
 
 		bank := uint16(0x8000)
 		tileAttr := p.gb.mem.readVRAM(tileAddr - 0x6000)
-		priority := ((tileAttr >> 7) & 1) == 1
+		priority := bits.Test(tileAttr, 7)
 		line := (y % 8) * 2
 
 		tile1 := p.gb.mem.readVRAM(tileLoc + uint16(line) - bank)
 		tile2 := p.gb.mem.readVRAM(tileLoc + uint16(line) - bank + 1)
 
 		colorBit := uint8(int8((x%8)-7) * -1)
-		colorNum := (((tile2 >> colorBit) & 1) << 1) | ((tile1 >> colorBit) & 1)
+		colorNum := ((bits.Value(tile2, colorBit) << 1) | bits.Value(tile1, colorBit))
 		p.setTilePixel(pixel, scanline, tileAttr, colorNum, palette, priority)
 	}
 }
@@ -184,13 +186,13 @@ func (p *PPU) getTileSettings(lcdc uint8, windowY uint8) (bool, bool, uint16, ui
 	tileData := uint16(0x8800)
 	backgroundMemory := uint16(0x9800)
 
-	if ((lcdc >> 5) & 1) == 1 {
+	if bits.Test(lcdc, 5) {
 		if windowY <= p.gb.mem.readByte(0xFF44) {
 			usingWindow = true
 		}
 	}
 
-	if ((lcdc >> 4) & 1) == 1 {
+	if bits.Test(lcdc, 4) {
 		tileData = 0x8000
 		unsigned = true
 	}
@@ -199,7 +201,7 @@ func (p *PPU) getTileSettings(lcdc uint8, windowY uint8) (bool, bool, uint16, ui
 	if usingWindow {
 		bit = 6
 	}
-	if ((lcdc >> bit) & 1) == 1 {
+	if bits.Test(lcdc, bit) {
 		backgroundMemory = 0x9C00
 	}
 
@@ -214,7 +216,7 @@ func (p *PPU) setTilePixel(x, y, tileAttr, colorNum, palette uint8, priority boo
 
 func (p *PPU) renderSprites(lcdc uint8, scanline int32) {
 	ySize := int32(8)
-	if ((lcdc >> 2) & 1) == 1 {
+	if bits.Test(lcdc, 2) {
 		ySize = 16
 	}
 
@@ -242,9 +244,9 @@ func (p *PPU) renderSprites(lcdc uint8, scanline int32) {
 		attrs := p.gb.mem.readByte(uint16(0xFE00 + idx + 3))
 		bank := uint16(0)
 
-		yFlip := ((attrs >> 6) & 1) == 1
-		xFlip := ((attrs >> 5) & 1) == 1
-		priority := ((attrs >> 7) & 1) == 0
+		yFlip := bits.Test(attrs, 6)
+		xFlip := bits.Test(attrs, 5)
+		priority := !bits.Test(attrs, 7)
 
 		line := scanline - y
 		if yFlip {
@@ -270,13 +272,13 @@ func (p *PPU) renderSprites(lcdc uint8, scanline int32) {
 				colorBit = uint8(int8(colorBit-7) * -1)
 			}
 
-			colorNum := (((sprite2 >> colorBit) & 1) << 1) | ((sprite1 >> colorBit) & 1)
+			colorNum := ((bits.Value(sprite2, colorBit) << 1) | bits.Value(sprite1, colorBit))
 			if colorNum == 0 {
 				continue
 			}
 
 			palette := palette1
-			if ((attrs >> 4) & 1) == 1 {
+			if bits.Test(attrs, 4) {
 				palette = palette2
 			}
 
@@ -296,7 +298,7 @@ func (p *PPU) setPixel(x uint8, y uint8, color uint32, priority bool) {
 func (p *PPU) getColor(colorNum uint8, palette uint8) uint32 {
 	hi := (colorNum << 1) | 1
 	lo := colorNum << 1
-	c := (((palette >> hi) & 1) << 1) | ((palette >> lo) & 1)
+	c := (bits.Value(palette, hi) << 1) | bits.Value(palette, lo)
 	return PALETTE[c]
 }
 

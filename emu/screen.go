@@ -28,7 +28,7 @@ func NewScreen() *Screen {
 }
 
 func newWindow() *sdl.Window {
-	win, err := sdl.CreateWindow("GoBoy", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+	win, err := sdl.CreateWindow("GameFella", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
 		int32(WIDTH*SCALE), int32(HEIGHT*SCALE), sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		panic(err)
