@@ -3,10 +3,12 @@ package emu
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 )
 
 var (
-	CPS = 4194304 / 60
+	FRAMETIME = time.Second / 60
+	CPS       = 4194304 / 60
 )
 
 type GameBoy struct {
@@ -42,7 +44,24 @@ func (gb *GameBoy) LoadRom(filename string) {
 	}
 }
 
-func (gb *GameBoy) Update() {
+func (gb *GameBoy) Run() {
+	ticker := time.NewTicker(FRAMETIME)
+	start := time.Now()
+	frames := 0
+
+	for range ticker.C {
+		frames++
+		gb.update()
+		elapsed := time.Since(start)
+		if elapsed > time.Second {
+			start = time.Now()
+			gb.SetTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
+			frames = 0
+		}
+	}
+}
+
+func (gb *GameBoy) update() {
 	gb.cyc = 0
 	for gb.cyc < (CPS * gb.speed) {
 		cyc := 4
