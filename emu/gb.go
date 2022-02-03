@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"time"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var (
@@ -51,14 +53,31 @@ func (gb *GameBoy) Run() {
 
 	for range ticker.C {
 		frames++
+
 		gb.update()
+		running := gb.pollSDL()
+		if !running {
+			break
+		}
+
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			gb.SetTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
+			gb.setTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
 			frames = 0
 		}
 	}
+}
+
+func (gb *GameBoy) pollSDL() bool {
+	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+		switch event.(type) {
+		case *sdl.QuitEvent:
+			return false
+		}
+		return true
+	}
+	return true
 }
 
 func (gb *GameBoy) update() {
@@ -79,7 +98,7 @@ func (gb *GameBoy) update() {
 	gb.screen.Update()
 }
 
-func (gb *GameBoy) SetTitle(title string) {
+func (gb *GameBoy) setTitle(title string) {
 	gb.screen.win.SetTitle(title)
 }
 
