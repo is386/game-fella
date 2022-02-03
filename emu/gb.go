@@ -1,5 +1,9 @@
 package emu
 
+import (
+	"fmt"
+)
+
 var (
 	CPS = 4194304 / 60
 )
@@ -34,10 +38,19 @@ func (gb *GameBoy) update() {
 	for gb.cyc < (CPS * gb.speed) {
 		cyc := 4
 		if !gb.cpu.halted {
+			if gb.debug {
+				gb.cpu.print()
+			}
 			cyc = gb.cpu.execute()
 		}
 		gb.cyc += cyc
 		gb.timer.update(cyc)
 		gb.cyc += gb.cpu.checkIME()
+	}
+}
+
+func (gb *GameBoy) printSerialLink() {
+	if !gb.debug {
+		fmt.Printf("%c", gb.mem.readByte(0xFF01))
 	}
 }

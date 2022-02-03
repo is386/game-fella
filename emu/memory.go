@@ -1,7 +1,5 @@
 package emu
 
-import "fmt"
-
 var (
 	MEM_SIZE        = 65536
 	DIV      uint16 = 0xFF04
@@ -159,7 +157,7 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 
 	case addr == 0xFF02:
 		if val == 0x81 {
-			fmt.Printf("%c", m.readByte(0xFF01))
+			m.gb.printSerialLink()
 		}
 
 	case addr == DIV:
@@ -185,7 +183,7 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 		m.hram[0x41] = val | 0x80
 
 	case addr == 0xFF44:
-		m.hram[0x44] = 0x90
+		m.hram[0x44] = 0
 
 	case addr == 0xFF46:
 		// TODO: DMA transfer

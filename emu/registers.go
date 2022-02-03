@@ -14,10 +14,6 @@ func NewRegisters() *Registers {
 	return &Registers{A: 0x01, B: 0x00, C: 0x13, D: 0x00, E: 0xD8, H: 0x01, L: 0x4D}
 }
 
-func (r *Registers) getAF(f uint8) uint16 {
-	return (uint16(r.A) << 8) | uint16(f)
-}
-
 func (r *Registers) getBC() uint16 {
 	return (uint16(r.B) << 8) | uint16(r.C)
 }

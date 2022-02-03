@@ -6,7 +6,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/5.gb"
+	ROM   = "roms/2.gb"
 )
 
 func main() {

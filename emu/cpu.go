@@ -3,13 +3,11 @@ package emu
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 )
 
 var (
 	PC       uint16 = 0x0100
 	SP       uint16 = 0xFFFE
-	C               = 0
 	INT_ADDR        = map[uint8]uint16{
 		0: 0x40,
 		1: 0x48,
@@ -93,6 +91,7 @@ func (c *CPU) print() {
 		c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L,
 		c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 }
+
 func (c *CPU) checkIME() int {
 	if c.imePending {
 		c.ime = true
@@ -128,11 +127,6 @@ func (c *CPU) doInterrupt(i uint8) {
 	c.writeByte(0xFF0F, c.res(intF, i))
 	c.push(c.pc)
 	c.pc = INT_ADDR[i]
-}
-
-func unimplemented(c *CPU) {
-	fmt.Printf("unimplemented: %X", c.readByte(c.pc-1))
-	os.Exit(0)
 }
 
 func flip(val uint8) uint8 {
