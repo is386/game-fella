@@ -1,8 +1,6 @@
 package emu
 
-import (
-	"fmt"
-)
+import "fmt"
 
 var (
 	MEM_SIZE        = 65536
@@ -25,6 +23,7 @@ type Memory struct {
 
 func NewMemory(gb *GameBoy) *Memory {
 	mem := Memory{gb: gb}
+	mem.hram[0x44] = 0x90
 	return &mem
 }
 
@@ -164,7 +163,8 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 		}
 
 	case addr == DIV:
-		// TODO: Do clock stuff here
+		m.gb.timer.resetTimer()
+		m.gb.timer.resetDivCyc()
 		m.hram[DIV-0xFF00] = 0
 
 	case addr == TIMA:
@@ -174,14 +174,18 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 		m.hram[TMA-0xFF00] = val
 
 	case addr == TAC:
-		// TODO: Do clock stuff here
+		freq0 := m.gb.timer.getTimerFreq()
 		m.hram[TAC-0xFF00] = val | 0xF8
+		freq := m.gb.timer.getTimerFreq()
+		if freq0 != freq {
+			m.gb.timer.resetTimer()
+		}
 
 	case addr == 0xFF41:
 		m.hram[0x41] = val | 0x80
 
 	case addr == 0xFF44:
-		m.hram[0x44] = 0
+		m.hram[0x44] = 0x90
 
 	case addr == 0xFF46:
 		// TODO: DMA transfer
@@ -224,5 +228,29 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 
 	default:
 		m.hram[addr-0xFF00] = val
+	}
+}
+
+func (m *Memory) incrDiv() {
+	m.hram[DIV-0xFF00]++
+}
+
+func (m *Memory) isTimerEnabled() bool {
+	return ((m.hram[0x07] >> 2) & 1) == 1
+}
+
+func (m *Memory) getTimerFreq() uint8 {
+	return m.hram[0x07] & 0x3
+}
+
+func (m *Memory) updateTima() {
+	tima := m.hram[0x05]
+	if tima == 0xFF {
+		m.hram[TIMA-0xFF00] = m.hram[0x06]
+		req := m.hram[0x0F] | 0xE0
+		req = req | (1 << 2)
+		m.writeByte(0xFF0F, req)
+	} else {
+		m.hram[TIMA-0xFF00] = tima + 1
 	}
 }

@@ -24,7 +24,6 @@ type CPU struct {
 	reg                     *Registers
 	flags                   *Flags
 	pc, sp                  uint16
-	cyc                     int
 	halted, ime, imePending bool
 }
 
@@ -82,12 +81,11 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
-func (c *CPU) execute() {
-	c.cyc += c.checkIME()
+func (c *CPU) execute() int {
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
-	c.cyc += cyc * 4
 	instr(c)
+	return cyc * 4
 }
 
 func (c *CPU) print() {
@@ -111,7 +109,7 @@ func (c *CPU) checkIME() int {
 	if intF > 0 {
 		for i := 0; i < 5; i++ {
 			if (((intF >> i) & 1) == 1) && (((intE >> i) & 1) == 1) {
-				c.interrupt(uint8(i))
+				c.doInterrupt(uint8(i))
 				return 20
 			}
 		}
@@ -119,8 +117,13 @@ func (c *CPU) checkIME() int {
 	return 0
 }
 
-func (c *CPU) interrupt(i uint8) {
+func (c *CPU) doInterrupt(i uint8) {
+	if !c.ime && c.halted {
+		c.halted = false
+		return
+	}
 	c.ime = false
+	c.halted = false
 	intF := c.readByte(0xFF0F)
 	c.writeByte(0xFF0F, c.res(intF, i))
 	c.push(c.pc)
@@ -128,7 +131,7 @@ func (c *CPU) interrupt(i uint8) {
 }
 
 func unimplemented(c *CPU) {
-	fmt.Println("unimplemented")
+	fmt.Printf("unimplemented: %X", c.readByte(c.pc-1))
 	os.Exit(0)
 }
 
@@ -2387,4 +2390,8 @@ func ccf(c *CPU) {
 	c.flags.N = 0
 	c.flags.H = 0
 	c.flags.C = flip(c.flags.C)
+}
+
+func halt(c *CPU) {
+	c.halted = true
 }
