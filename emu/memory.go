@@ -252,3 +252,11 @@ func (m *Memory) updateTima() {
 		m.hram[TIMA-0xFF00] = tima + 1
 	}
 }
+
+func (m *Memory) getLCDMode() uint8 {
+	return m.hram[0x41]
+}
+
+func (m *Memory) isLCDEnabled() bool {
+	return ((m.hram[0x40] >> 7) & 1) == 1
+}

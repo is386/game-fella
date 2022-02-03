@@ -2,7 +2,6 @@ package emu
 
 import (
 	"fmt"
-	"io/ioutil"
 )
 
 var (
@@ -27,16 +26,6 @@ type CPU struct {
 
 func NewCPU(gb *GameBoy) *CPU {
 	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
-}
-
-func (c *CPU) loadRom(filename string) {
-	rom, err := ioutil.ReadFile(filename)
-	if err != nil {
-		panic(err)
-	}
-	for i := 0; i < len(rom); i++ {
-		c.writeByte(uint16(i), rom[i])
-	}
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {
