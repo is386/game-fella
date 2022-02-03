@@ -26,7 +26,7 @@ func main() {
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			gb.SetTitle(fmt.Sprintf("GameDude - FPS: %2v\n", frames))
+			gb.SetTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
 			frames = 0
 		}
 	}

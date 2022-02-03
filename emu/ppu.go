@@ -45,8 +45,6 @@ func (p *PPU) update(cyc int) {
 	if p.scanlineCount <= 0 {
 		p.gb.mem.writeHRAM(0x44, (p.gb.mem.readHRAM(0x44) + 1))
 		if p.gb.mem.readHRAM(0x44) > 153 {
-			p.gb.screen.Update()
-			p.gb.screen.sur = newSurface()
 			p.bgPriority = makeBgPriority()
 			p.gb.mem.writeHRAM(0x44, 0)
 		}
@@ -132,10 +130,10 @@ func (p *PPU) drawScanline(scanline uint8) {
 }
 
 func (p *PPU) renderTiles(lcdc uint8, scanline uint8) {
-	scrollY := p.gb.mem.readByte(0xFF42)
-	scrollX := p.gb.mem.readByte(0xFF43)
-	windowY := p.gb.mem.readByte(0xFF4A)
-	windowX := p.gb.mem.readByte(0xFF4B) - 7
+	scrollY := p.gb.mem.readHRAMByte(0xFF42)
+	scrollX := p.gb.mem.readHRAMByte(0xFF43)
+	windowY := p.gb.mem.readHRAMByte(0xFF4A)
+	windowX := p.gb.mem.readHRAMByte(0xFF4B) - 7
 	usingWindow, unsigned, tileData, backgroundMemory := p.getTileSettings(lcdc, windowY)
 
 	y := scanline - windowY
@@ -144,7 +142,7 @@ func (p *PPU) renderTiles(lcdc uint8, scanline uint8) {
 	}
 
 	tileRow := uint16(y/8) * 32
-	palette := p.gb.mem.readByte(0xFF47)
+	palette := p.gb.mem.readHRAMByte(0xFF47)
 	p.tileScanline = make([]uint8, WIDTH)
 
 	for pixel := uint8(0); pixel < uint8(WIDTH); pixel++ {
@@ -210,7 +208,7 @@ func (p *PPU) getTileSettings(lcdc uint8, windowY uint8) (bool, bool, uint16, ui
 
 func (p *PPU) setTilePixel(x, y, tileAttr, colorNum, palette uint8, priority bool) {
 	color := p.getColor(colorNum, palette)
-	p.setPixel(x, y, color, priority)
+	p.setPixel(x, y, color, true)
 	p.tileScanline[x] = colorNum
 }
 
@@ -320,6 +318,5 @@ func (p *PPU) clear() {
 			p.gb.screen.drawPixel(int32(i), int32(j), WHITE)
 		}
 	}
-	p.gb.screen.Update()
 	p.isClear = true
 }
