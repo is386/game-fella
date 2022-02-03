@@ -1,11 +1,14 @@
 package emu
 
 var (
-	OG_WIDTH  = 160
-	OG_HEIGHT = 144
-	SCALE     = 2
-	WIDTH     = OG_WIDTH * SCALE
-	HEIGHT    = OG_HEIGHT * SCALE
+	WIDTH          = 160
+	HEIGHT         = 144
+	SCALE          = 4
+	MODE1   uint8  = 144
+	MODE2   int    = 376
+	MODE3   int    = 204
+	LCDC    uint16 = 0xFF40
+	PALETTE        = []uint32{0xD0F8E0, 0x70C088, 0x566834, 0x201808}
 )
 
 type PPU struct {
@@ -32,19 +35,275 @@ func makeBgPriority() [][]bool {
 }
 
 func (p *PPU) update(cyc int) {
-	p.setMode()
-}
-
-func (p *PPU) setMode() {
-	//mode := p.getLCDMode()
+	p.setLCDStatus()
 
 	if !p.isLCDEnabled() {
-		p.clear()
+		return
+	}
+
+	p.scanlineCount -= cyc
+	if p.scanlineCount <= 0 {
+		p.gb.mem.writeHRAM(0x44, (p.gb.mem.readHRAM(0x44) + 1))
+		if p.gb.mem.readHRAM(0x44) > 153 {
+			p.gb.screen.Update()
+			p.gb.screen.sur = newSurface()
+			p.bgPriority = makeBgPriority()
+			p.gb.mem.writeHRAM(0x44, 0)
+		}
+
+		currLine := p.gb.mem.readHRAMByte(0xFF44)
+		p.scanlineCount += 456 * p.gb.speed
+		if currLine == uint8(HEIGHT) {
+			p.gb.mem.writeInterrupt(0)
+		}
 	}
 }
 
-func (p *PPU) getLCDMode() uint8 {
-	return p.gb.mem.getLCDMode()
+func (p *PPU) setLCDStatus() {
+	stat := p.getLCDStatus()
+
+	if !p.isLCDEnabled() {
+		p.clear()
+		p.scanlineCount = 456
+		p.gb.mem.writeHRAM(0x44, 0)
+		stat &= 252
+		stat = p.gb.cpu.res(stat, 0)
+		stat = p.gb.cpu.res(stat, 1)
+		p.gb.mem.writeByte(0xFF41, stat)
+		return
+	}
+
+	p.isClear = false
+	currLine := p.gb.mem.readHRAM(0x44)
+	currMode := stat & 0x3
+	sendInt := false
+	var mode uint8
+
+	if currLine >= MODE1 {
+		mode = 1
+		stat = p.gb.cpu.set(stat, 0)
+		stat = p.gb.cpu.res(stat, 1)
+		sendInt = ((stat >> 4) & 1) == 1
+	} else if p.scanlineCount >= MODE2 {
+		mode = 2
+		stat = p.gb.cpu.res(stat, 0)
+		stat = p.gb.cpu.set(stat, 1)
+		sendInt = ((stat >> 5) & 1) == 1
+	} else if p.scanlineCount >= MODE3 {
+		mode = 3
+		stat = p.gb.cpu.set(stat, 0)
+		stat = p.gb.cpu.set(stat, 1)
+		if mode != currMode {
+			p.drawScanline(currLine)
+		}
+	} else {
+		mode = 0
+		stat = p.gb.cpu.res(stat, 0)
+		stat = p.gb.cpu.res(stat, 1)
+		if mode != currMode {
+			p.gb.mem.doHDMATransfer()
+		}
+	}
+
+	if sendInt && mode != currMode {
+		p.gb.mem.writeInterrupt(1)
+	}
+
+	if currLine == p.gb.mem.readHRAM(0x45) {
+		stat = p.gb.cpu.set(stat, 2)
+		if ((stat >> 6) & 1) == 1 {
+			p.gb.mem.writeInterrupt(1)
+		}
+	} else {
+		stat = p.gb.cpu.res(stat, 2)
+	}
+	p.gb.mem.writeHRAM(0x41, stat)
+}
+
+func (p *PPU) drawScanline(scanline uint8) {
+	lcdc := p.gb.mem.readByte(LCDC)
+	if ((lcdc >> 0) & 1) == 1 {
+		p.renderTiles(lcdc, scanline)
+	}
+
+	if ((lcdc >> 1) & 1) == 1 {
+		p.renderSprites(lcdc, int32(scanline))
+	}
+}
+
+func (p *PPU) renderTiles(lcdc uint8, scanline uint8) {
+	scrollY := p.gb.mem.readByte(0xFF42)
+	scrollX := p.gb.mem.readByte(0xFF43)
+	windowY := p.gb.mem.readByte(0xFF4A)
+	windowX := p.gb.mem.readByte(0xFF4B) - 7
+	usingWindow, unsigned, tileData, backgroundMemory := p.getTileSettings(lcdc, windowY)
+
+	y := scanline - windowY
+	if !usingWindow {
+		y = scrollY + scanline
+	}
+
+	tileRow := uint16(y/8) * 32
+	palette := p.gb.mem.readByte(0xFF47)
+	p.tileScanline = make([]uint8, WIDTH)
+
+	for pixel := uint8(0); pixel < uint8(WIDTH); pixel++ {
+		x := pixel + scrollX
+
+		if usingWindow && pixel >= windowX {
+			x = pixel - windowX
+		}
+
+		tileCol := uint16(x / 8)
+		tileAddr := backgroundMemory + tileRow + tileCol
+		tileLoc := tileData
+
+		if unsigned {
+			tileNum := int16(p.gb.mem.readVRAM(tileAddr - 0x8000))
+			tileLoc += uint16(tileNum * 16)
+		} else {
+			tileNum := int16(int8(p.gb.mem.readVRAM(tileAddr - 0x8000)))
+			tileLoc = uint16(int32(tileLoc) + int32((tileNum+128)*16))
+		}
+
+		bank := uint16(0x8000)
+		tileAttr := p.gb.mem.readVRAM(tileAddr - 0x6000)
+		priority := ((tileAttr >> 7) & 1) == 1
+		line := (y % 8) * 2
+
+		tile1 := p.gb.mem.readVRAM(tileLoc + uint16(line) - bank)
+		tile2 := p.gb.mem.readVRAM(tileLoc + uint16(line) - bank + 1)
+
+		colorBit := uint8(int8((x%8)-7) * -1)
+		colorNum := (((tile2 >> colorBit) & 1) << 1) | ((tile1 >> colorBit) & 1)
+		p.setTilePixel(pixel, scanline, tileAttr, colorNum, palette, priority)
+	}
+}
+
+func (p *PPU) getTileSettings(lcdc uint8, windowY uint8) (bool, bool, uint16, uint16) {
+	usingWindow := false
+	unsigned := false
+	tileData := uint16(0x8800)
+	backgroundMemory := uint16(0x9800)
+
+	if ((lcdc >> 5) & 1) == 1 {
+		if windowY <= p.gb.mem.readByte(0xFF44) {
+			usingWindow = true
+		}
+	}
+
+	if ((lcdc >> 4) & 1) == 1 {
+		tileData = 0x8000
+		unsigned = true
+	}
+
+	bit := uint8(3)
+	if usingWindow {
+		bit = 6
+	}
+	if ((lcdc >> bit) & 1) == 1 {
+		backgroundMemory = 0x9C00
+	}
+
+	return usingWindow, unsigned, tileData, backgroundMemory
+}
+
+func (p *PPU) setTilePixel(x, y, tileAttr, colorNum, palette uint8, priority bool) {
+	color := p.getColor(colorNum, palette)
+	p.setPixel(x, y, color, priority)
+	p.tileScanline[x] = colorNum
+}
+
+func (p *PPU) renderSprites(lcdc uint8, scanline int32) {
+	ySize := int32(8)
+	if ((lcdc >> 2) & 1) == 1 {
+		ySize = 16
+	}
+
+	palette1 := p.gb.mem.readByte(0xFF48)
+	palette2 := p.gb.mem.readByte(0xFF49)
+
+	minX := make([]int32, WIDTH)
+	lineSprites := 0
+
+	for sprite := uint16(0); sprite < 40; sprite++ {
+		idx := sprite * 4
+
+		y := int32(p.gb.mem.readByte(uint16(0xFE00+idx))) - 16
+		if scanline < y || scanline >= (y+ySize) {
+			continue
+		}
+
+		if lineSprites >= 10 {
+			break
+		}
+		lineSprites++
+
+		x := int32(p.gb.mem.readByte(uint16(0xFE00+idx+1))) - 8
+		tileLoc := p.gb.mem.readByte(uint16(0xFE00 + idx + 2))
+		attrs := p.gb.mem.readByte(uint16(0xFE00 + idx + 3))
+		bank := uint16(0)
+
+		yFlip := ((attrs >> 6) & 1) == 1
+		xFlip := ((attrs >> 5) & 1) == 1
+		priority := ((attrs >> 7) & 1) == 0
+
+		line := scanline - y
+		if yFlip {
+			line = ySize - line - 1
+		}
+
+		dataAddr := (uint16(tileLoc) * 16) + uint16(line*2) + (bank * 0x2000)
+		sprite1 := p.gb.mem.readVRAM(dataAddr)
+		sprite2 := p.gb.mem.readVRAM(dataAddr + 1)
+
+		for tilePixel := uint8(0); tilePixel < 8; tilePixel++ {
+			pixel := int16(x) + int16(7-tilePixel)
+			if pixel < 0 || pixel >= int16(WIDTH) {
+				continue
+			}
+
+			if minX[pixel] != 0 && minX[pixel] <= x+100 {
+				continue
+			}
+
+			colorBit := tilePixel
+			if xFlip {
+				colorBit = uint8(int8(colorBit-7) * -1)
+			}
+
+			colorNum := (((sprite2 >> colorBit) & 1) << 1) | ((sprite1 >> colorBit) & 1)
+			if colorNum == 0 {
+				continue
+			}
+
+			palette := palette1
+			if ((attrs >> 4) & 1) == 1 {
+				palette = palette2
+			}
+
+			color := p.getColor(colorNum, palette)
+			p.setPixel(uint8(pixel), uint8(scanline), color, priority)
+			minX[pixel] = x + 100
+		}
+	}
+}
+
+func (p *PPU) setPixel(x uint8, y uint8, color uint32, priority bool) {
+	if priority && !p.bgPriority[x][y] || p.tileScanline[x] == 0 {
+		p.gb.screen.drawPixel(int32(x), int32(y), color)
+	}
+}
+
+func (p *PPU) getColor(colorNum uint8, palette uint8) uint32 {
+	hi := (colorNum << 1) | 1
+	lo := colorNum << 1
+	c := (((palette >> hi) & 1) << 1) | ((palette >> lo) & 1)
+	return PALETTE[c]
+}
+
+func (p *PPU) getLCDStatus() uint8 {
+	return p.gb.mem.getLCDStatus()
 }
 
 func (p *PPU) isLCDEnabled() bool {
@@ -61,6 +320,6 @@ func (p *PPU) clear() {
 			p.gb.screen.drawPixel(int32(i), int32(j), WHITE)
 		}
 	}
-
+	p.gb.screen.Update()
 	p.isClear = true
 }

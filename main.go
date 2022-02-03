@@ -8,16 +8,15 @@ import (
 )
 
 var (
-	DEBUG = false
-	FPS   = 60
-	ROM   = "roms/2.gb"
+	DEBUG     = false
+	FRAMETIME = time.Second / 60
+	ROM       = "roms/drmario.gb"
 )
 
 func main() {
 	gb := emu.NewGameBoy(ROM, DEBUG)
 
-	frameTime := time.Second / 60
-	ticker := time.NewTicker(frameTime)
+	ticker := time.NewTicker(FRAMETIME)
 	start := time.Now()
 	frames := 0
 
@@ -27,7 +26,7 @@ func main() {
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			gb.SetTitle(fmt.Sprintf("GoBoy - FPS: %2v\n", frames))
+			gb.SetTitle(fmt.Sprintf("GameDude - FPS: %2v\n", frames))
 			frames = 0
 		}
 	}

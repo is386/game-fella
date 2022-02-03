@@ -21,7 +21,41 @@ type Memory struct {
 
 func NewMemory(gb *GameBoy) *Memory {
 	mem := Memory{gb: gb}
-	mem.hram[0x44] = 0x90
+	mem.hram[0x04] = 0x1E
+	mem.hram[0x05] = 0x00
+	mem.hram[0x06] = 0x00
+	mem.hram[0x07] = 0xF8
+	mem.hram[0x0F] = 0xE1
+	mem.hram[0x10] = 0x80
+	mem.hram[0x11] = 0xBF
+	mem.hram[0x12] = 0xF3
+	mem.hram[0x14] = 0xBF
+	mem.hram[0x16] = 0x3F
+	mem.hram[0x17] = 0x00
+	mem.hram[0x19] = 0xBF
+	mem.hram[0x1A] = 0x7F
+	mem.hram[0x1B] = 0xFF
+	mem.hram[0x1C] = 0x9F
+	mem.hram[0x1E] = 0xBF
+	mem.hram[0x20] = 0xFF
+	mem.hram[0x21] = 0x00
+	mem.hram[0x22] = 0x00
+	mem.hram[0x23] = 0xBF
+	mem.hram[0x24] = 0x77
+	mem.hram[0x25] = 0xF3
+	mem.hram[0x26] = 0xF1
+	mem.hram[0x40] = 0x91
+	mem.hram[0x41] = 0x85
+	mem.hram[0x42] = 0x00
+	mem.hram[0x43] = 0x00
+	mem.hram[0x45] = 0x00
+	mem.hram[0x47] = 0xFC
+	mem.hram[0x48] = 0xFF
+	mem.hram[0x49] = 0xFF
+	mem.hram[0x4A] = 0x00
+	mem.hram[0x4B] = 0x00
+	mem.hram[0xFF] = 0x00
+	mem.wramBank = 1
 	return &mem
 }
 
@@ -54,11 +88,11 @@ func (m *Memory) readByte(addr uint16) uint8 {
 		return 0
 
 	default:
-		return m.readHram(addr)
+		return m.readHRAMByte(addr)
 	}
 }
 
-func (m *Memory) readHram(addr uint16) uint8 {
+func (m *Memory) readHRAMByte(addr uint16) uint8 {
 	switch {
 	case addr == 0xFF00:
 		// TODO: Joypad
@@ -79,19 +113,19 @@ func (m *Memory) readHram(addr uint16) uint8 {
 		return 0
 
 	case addr == 0xFF68:
-		// TODO: BG palette index
+		// TODO: BG palette index (CGB)
 		return 0
 
 	case addr == 0xFF69:
-		// TODO: BG Palette data
+		// TODO: BG Palette data (CGB)
 		return 0
 
 	case addr == 0xFF6A:
-		// TODO: Sprite palette index
+		// TODO: Sprite palette index (CGB)
 		return 0
 
 	case addr == 0xFF6B:
-		// TODO: Sprite Palette data
+		// TODO: Sprite Palette data (CGB)
 		return 0
 
 	case addr == 0xFF4D:
@@ -186,8 +220,7 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 		m.hram[0x44] = 0
 
 	case addr == 0xFF46:
-		// TODO: DMA transfer
-		return
+		m.doDMATransfer(val)
 
 	case addr == 0xFF4D:
 		// TODO: CGB speed change
@@ -202,11 +235,11 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 		return
 
 	case addr == 0xFF68:
-		// TODO: BG palette index
+		// TODO: BG palette index (CGB)
 		return
 
 	case addr == 0xFF69:
-		// TODO: BG Palette data
+		// TODO: BG Palette data (CGB)
 		return
 
 	case addr == 0xFF6A:
@@ -229,6 +262,29 @@ func (m *Memory) writeHRam(addr uint16, val uint8) {
 	}
 }
 
+func (m *Memory) doDMATransfer(val uint8) {
+	addr := uint16(val) << 8
+	for i := uint16(0); i < 0xA0; i++ {
+		m.writeByte(0xFE00+i, m.readByte(addr+i))
+	}
+}
+
+func (m *Memory) doHDMATransfer() {
+	return
+}
+
+func (m *Memory) readVRAM(addr uint16) uint8 {
+	return m.vram[addr]
+}
+
+func (m *Memory) readHRAM(addr uint16) uint8 {
+	return m.hram[addr]
+}
+
+func (m *Memory) writeHRAM(addr uint16, val uint8) {
+	m.hram[addr] = val
+}
+
 func (m *Memory) incrDiv() {
 	m.hram[DIV-0xFF00]++
 }
@@ -245,15 +301,19 @@ func (m *Memory) updateTima() {
 	tima := m.hram[0x05]
 	if tima == 0xFF {
 		m.hram[TIMA-0xFF00] = m.hram[0x06]
-		req := m.hram[0x0F] | 0xE0
-		req = req | (1 << 2)
-		m.writeByte(0xFF0F, req)
+		m.writeInterrupt(2)
 	} else {
 		m.hram[TIMA-0xFF00] = tima + 1
 	}
 }
 
-func (m *Memory) getLCDMode() uint8 {
+func (m *Memory) writeInterrupt(i int) {
+	req := m.hram[0x0F] | 0xE0
+	req = req | (1 << i)
+	m.writeByte(0xFF0F, req)
+}
+
+func (m *Memory) getLCDStatus() uint8 {
 	return m.hram[0x41]
 }
 
