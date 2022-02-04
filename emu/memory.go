@@ -40,14 +40,19 @@ func NewMemory(gb *GameBoy) *Memory {
 
 func (m *Memory) readByte(addr uint16) uint8 {
 	switch addr & 0xF000 {
+
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
 		return m.ROM[addr]
+
 	case 0x8000, 0x9000:
 		return m.VRAM[addr-0x8000]
+
 	case 0xA000, 0xB000:
 		return m.ERAM[addr-0xA000]
+
 	case 0xC000, 0xD000:
 		return m.WRAM[addr-0xC000]
+
 	case 0xE000:
 		return 0
 	}
@@ -57,26 +62,33 @@ func (m *Memory) readByte(addr uint16) uint8 {
 		if addr < 0xFEA0 {
 			return m.OAM[addr-0xFE00]
 		}
+
 	case 0x0F00:
 		return m.HRAM[addr-0xFF00]
 	}
+
 	return 0
 }
 
 func (m *Memory) writeByte(addr uint16, val uint8) {
 	switch addr & 0xF000 {
+
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
 		m.ROM[addr] = val
 		return
+
 	case 0x8000, 0x9000:
 		m.VRAM[addr-0x8000] = val
 		return
+
 	case 0xA000, 0xB000:
 		m.ERAM[addr-0xA000] = val
 		return
+
 	case 0xC000, 0xD000:
 		m.WRAM[addr-0xC000] = val
 		return
+
 	case 0xE000:
 		return
 	}
@@ -86,6 +98,7 @@ func (m *Memory) writeByte(addr uint16, val uint8) {
 		if addr < 0xFEA0 {
 			m.OAM[addr-0xFE00] = val
 		}
+
 	case 0x0F00:
 		m.HRAM[addr-0xFF00] = val
 		if addr == 0xFF02 && val == 0x81 {
@@ -100,10 +113,13 @@ func (m *Memory) writeHRAM(reg uint8, val uint8) {
 		m.gb.timer.resetTimer()
 		m.gb.timer.resetDivCyc()
 		m.HRAM[DIV] = 0
+
 	case TIMA:
 		m.HRAM[TIMA] = val
+
 	case TMA:
 		m.HRAM[TMA] = val
+
 	case TAC:
 		freq0 := m.gb.timer.getTimerFreq()
 		m.HRAM[TAC] = val | 0xF8
@@ -111,10 +127,13 @@ func (m *Memory) writeHRAM(reg uint8, val uint8) {
 		if freq0 != freq {
 			m.gb.timer.resetTimer()
 		}
+
 	case STAT:
 		m.HRAM[STAT] = val | 0x80
+
 	case LY:
 		m.HRAM[LY] = 0
+
 	case DMA:
 		m.doDMATransfer(val)
 	}

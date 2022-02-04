@@ -35,14 +35,16 @@ func (p *PPU) update(cyc int) {
 	if p.scanlineCount <= 0 {
 		p.gb.mem.incrLY()
 		currLine := p.gb.mem.readHRAM(LY)
-		p.scanlineCount = 456
+
+		if currLine > 153 {
+			p.gb.mem.writeHRAM(LY, 0)
+			currLine = 0
+		}
+
+		p.scanlineCount += 456
 
 		if currLine == uint8(HEIGHT) {
 			p.gb.mem.writeInterrupt(0)
-		} else if currLine > 153 {
-			p.gb.mem.writeHRAM(LY, 0)
-		} else if currLine < 144 {
-			p.drawScanline()
 		}
 	}
 }
@@ -84,8 +86,8 @@ func (p *PPU) setLCDStatus() {
 		}
 	} else {
 		mode = 0
-		stat = bits.Reset(stat, 1)
 		stat = bits.Reset(stat, 0)
+		stat = bits.Reset(stat, 1)
 		reqInt = bits.Test(stat, 3)
 		if mode != currMode {
 			p.gb.mem.doHDMATransfer()
@@ -134,12 +136,12 @@ func (p *PPU) renderTiles() {
 	windowY := p.gb.mem.readHRAM(WY)
 	windowX := p.gb.mem.readHRAM(WX) - 7
 
-	usingWindow := bits.Test(lcdc, 5) && windowY <= p.gb.mem.readHRAM(LY)
+	usingWindow := bits.Test(lcdc, 5) && windowY <= scanline
 
 	if bits.Test(lcdc, 4) {
 		tileData = 0x8000
 	} else {
-		tileData = 0x8800
+		tileData = 0x9000
 		unsigned = false
 	}
 
@@ -178,7 +180,7 @@ func (p *PPU) renderTiles() {
 			tileLoc += uint16(tileNum * 16)
 		} else {
 			tileNum := int8(p.gb.mem.readByte(tileAddr))
-			tileLoc += uint16((int16(tileNum) + 128) * 16)
+			tileLoc += uint16(int16(tileNum) * 16)
 		}
 
 		line := (y % 8) * 2
@@ -191,11 +193,10 @@ func (p *PPU) renderTiles() {
 		colorNum |= bits.Value(tile1, uint8(colorBit))
 
 		color := p.getColor(colorNum, BGP)
-		finalY := p.gb.mem.readHRAM(LY)
-		if (finalY > 143) || (pixel > 159) {
+		if (scanline > 143) || (pixel > 159) {
 			continue
 		}
-		p.gb.screen.drawPixel(int32(pixel), int32(finalY), color)
+		p.gb.screen.drawPixel(int32(pixel), int32(scanline), color)
 	}
 }
 
@@ -234,7 +235,7 @@ func (p *PPU) renderSprites() {
 			sprite1 := p.gb.mem.readByte(spriteAddr)
 			sprite2 := p.gb.mem.readByte(spriteAddr + 1)
 
-			for tilePixel := 0; tilePixel < 8; tilePixel++ {
+			for tilePixel := 7; tilePixel >= 0; tilePixel++ {
 				colorBit := tilePixel
 
 				if xFlip {
@@ -248,9 +249,9 @@ func (p *PPU) renderSprites() {
 
 				var colorAddr uint8
 				if bits.Test(attrs, 4) {
-					colorAddr = OBP1
-				} else {
 					colorAddr = OBP0
+				} else {
+					colorAddr = OBP1
 				}
 
 				color := p.getColor(colorNum, colorAddr)
