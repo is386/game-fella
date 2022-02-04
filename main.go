@@ -6,7 +6,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/2.gb"
+	ROM   = "roms/drmario.gb"
 )
 
 func main() {

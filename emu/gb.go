@@ -20,7 +20,6 @@ type GameBoy struct {
 	ppu    *PPU
 	timer  *Timer
 	cyc    int
-	speed  int
 	debug  bool
 }
 
@@ -28,10 +27,9 @@ func NewGameBoy(rom string, debug bool) *GameBoy {
 	gb := &GameBoy{debug: debug}
 	gb.cpu = NewCPU(gb)
 	gb.mem = NewMemory(gb)
-	//gb.screen = NewScreen()
-	//gb.ppu = NewPPU(gb)
+	gb.screen = NewScreen()
+	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
-	gb.speed = 1
 	gb.LoadRom(rom)
 	return gb
 }
@@ -63,7 +61,7 @@ func (gb *GameBoy) Run() {
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			//gb.setTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
+			gb.setTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
 			frames = 0
 		}
 	}
@@ -82,7 +80,7 @@ func (gb *GameBoy) pollSDL() bool {
 
 func (gb *GameBoy) update() {
 	gb.cyc = 0
-	for gb.cyc < (CPS * gb.speed) {
+	for gb.cyc < CPS {
 		cyc := 4
 		if !gb.cpu.halted {
 			if gb.debug {
@@ -91,11 +89,11 @@ func (gb *GameBoy) update() {
 			cyc = gb.cpu.execute()
 		}
 		gb.cyc += cyc
-		//gb.ppu.update(cyc)
+		gb.ppu.update(cyc)
 		gb.timer.update(cyc)
 		gb.cyc += gb.cpu.checkIME()
 	}
-	//gb.screen.Update()
+	gb.screen.Update()
 }
 
 func (gb *GameBoy) setTitle(title string) {
