@@ -15,7 +15,7 @@ var (
 
 type GameBoy struct {
 	cpu    *CPU
-	mem    *Memory
+	mmu    *MMU
 	screen *Screen
 	ppu    *PPU
 	timer  *Timer
@@ -26,7 +26,7 @@ type GameBoy struct {
 func NewGameBoy(rom string, debug bool) *GameBoy {
 	gb := &GameBoy{debug: debug}
 	gb.cpu = NewCPU(gb)
-	gb.mem = NewMemory(gb)
+	gb.mmu = NewMMU(gb)
 	gb.screen = NewScreen()
 	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
@@ -40,7 +40,7 @@ func (gb *GameBoy) LoadRom(filename string) {
 		panic(err)
 	}
 	for i := 0; i < len(rom); i++ {
-		gb.mem.writeByte(uint16(i), rom[i])
+		gb.mmu.writeByte(uint16(i), rom[i])
 	}
 }
 
@@ -102,6 +102,6 @@ func (gb *GameBoy) setTitle(title string) {
 
 func (gb *GameBoy) printSerialLink() {
 	if !gb.debug {
-		fmt.Printf("%c", gb.mem.readByte(0xFF01))
+		fmt.Printf("%c", gb.mmu.readHRAM(COMM1))
 	}
 }

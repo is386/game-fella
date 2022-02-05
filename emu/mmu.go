@@ -5,25 +5,28 @@ import (
 )
 
 var (
-	DIV  uint8 = 0x04
-	TIMA uint8 = 0x05
-	TMA  uint8 = 0x06
-	TAC  uint8 = 0x07
-	LCDC uint8 = 0x40
-	STAT uint8 = 0x41
-	SCY  uint8 = 0x42
-	SCX  uint8 = 0x43
-	LY   uint8 = 0x44
-	LYC  uint8 = 0x45
-	DMA  uint8 = 0x46
-	BGP  uint8 = 0x47
-	OBP0 uint8 = 0x48
-	OBP1 uint8 = 0x49
-	WY   uint8 = 0x4A
-	WX   uint8 = 0x4B
+	JOYPAD uint8 = 0x00
+	COMM1  uint8 = 0x01
+	COMM2  uint8 = 0x02
+	DIV    uint8 = 0x04
+	TIMA   uint8 = 0x05
+	TMA    uint8 = 0x06
+	TAC    uint8 = 0x07
+	LCDC   uint8 = 0x40
+	STAT   uint8 = 0x41
+	SCY    uint8 = 0x42
+	SCX    uint8 = 0x43
+	LY     uint8 = 0x44
+	LYC    uint8 = 0x45
+	DMA    uint8 = 0x46
+	BGP    uint8 = 0x47
+	OBP0   uint8 = 0x48
+	OBP1   uint8 = 0x49
+	WY     uint8 = 0x4A
+	WX     uint8 = 0x4B
 )
 
-type Memory struct {
+type MMU struct {
 	gb   *GameBoy
 	ROM  [0x7FFF - 0x0000 + 1]uint8
 	VRAM [0x9FFF - 0x8000 + 1]uint8
@@ -33,12 +36,12 @@ type Memory struct {
 	HRAM [0xFFFF - 0xFF00 + 1]uint8
 }
 
-func NewMemory(gb *GameBoy) *Memory {
-	mem := Memory{gb: gb}
-	return &mem
+func NewMMU(gb *GameBoy) *MMU {
+	mmu := MMU{gb: gb}
+	return &mmu
 }
 
-func (m *Memory) readByte(addr uint16) uint8 {
+func (m *MMU) readByte(addr uint16) uint8 {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
@@ -50,16 +53,16 @@ func (m *Memory) readByte(addr uint16) uint8 {
 	case 0xA000, 0xB000:
 		return m.ERAM[addr-0xA000]
 
-	case 0xC000, 0xD000:
+	case 0xC000, 0xD000, 0xE000:
+		if addr >= 0xE000 {
+			addr -= 0x2000
+		}
 		return m.WRAM[addr-0xC000]
-
-	case 0xE000:
-		return 0
 	}
 
 	switch addr & 0x0F00 {
 	case 0x0E00:
-		if addr < 0xFEA0 {
+		if addr-0xFE00 < 160 {
 			return m.OAM[addr-0xFE00]
 		}
 
@@ -67,10 +70,10 @@ func (m *Memory) readByte(addr uint16) uint8 {
 		return m.HRAM[addr-0xFF00]
 	}
 
-	return 0
+	return 0xFF
 }
 
-func (m *Memory) writeByte(addr uint16, val uint8) {
+func (m *MMU) writeByte(addr uint16, val uint8) {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
@@ -85,11 +88,11 @@ func (m *Memory) writeByte(addr uint16, val uint8) {
 		m.ERAM[addr-0xA000] = val
 		return
 
-	case 0xC000, 0xD000:
+	case 0xC000, 0xD000, 0xE000:
+		if addr >= 0xE000 {
+			addr -= 0x2000
+		}
 		m.WRAM[addr-0xC000] = val
-		return
-
-	case 0xE000:
 		return
 	}
 
@@ -100,15 +103,20 @@ func (m *Memory) writeByte(addr uint16, val uint8) {
 		}
 
 	case 0x0F00:
-		m.HRAM[addr-0xFF00] = val
-		if addr == 0xFF02 && val == 0x81 {
-			m.gb.printSerialLink()
-		}
+		m.writeHRAM(uint8(addr-0xFF00), val)
 	}
 }
 
-func (m *Memory) writeHRAM(reg uint8, val uint8) {
+func (m *MMU) writeHRAM(reg uint8, val uint8) {
 	switch reg {
+	case JOYPAD:
+		m.HRAM[JOYPAD] = val | 0xC3
+
+	case COMM2:
+		if val == 0x81 {
+			m.gb.printSerialLink()
+		}
+
 	case DIV:
 		m.gb.timer.resetTimer()
 		m.gb.timer.resetDivCyc()
@@ -135,52 +143,38 @@ func (m *Memory) writeHRAM(reg uint8, val uint8) {
 		m.HRAM[LY] = 0
 
 	case DMA:
-		m.doDMATransfer(val)
+		m.dmaTransfer(val)
+
+	default:
+		m.HRAM[reg] = val
 	}
 }
 
-func (m *Memory) readHRAM(reg uint8) uint8 {
+func (m *MMU) readHRAM(reg uint8) uint8 {
 	return m.HRAM[reg]
 }
 
-func (m *Memory) doDMATransfer(val uint8) {
+func (m *MMU) dmaTransfer(val uint8) {
 	addr := uint16(val) << 8
 	for i := uint16(0); i < 0xA0; i++ {
 		m.writeByte(0xFE00+i, m.readByte(addr+i))
 	}
 }
 
-func (m *Memory) doHDMATransfer() {
-}
-
-func (m *Memory) writeInterrupt(i int) {
+func (m *MMU) writeInterrupt(i int) {
 	req := m.HRAM[0x0F] | 0xE0
 	req = bits.Set(req, uint8(i))
 	m.writeByte(0xFF0F, req)
 }
 
-func (m *Memory) incrDiv() {
+func (m *MMU) incrDiv() {
 	m.HRAM[DIV]++
 }
 
-func (m *Memory) incrLY() {
+func (m *MMU) incrLY() {
 	m.HRAM[LY]++
 }
 
-func (m *Memory) isTimerEnabled() bool {
-	return bits.Test(m.HRAM[TAC], 2)
-}
-
-func (m *Memory) getTimerFreq() uint8 {
-	return m.HRAM[TAC] & 0x3
-}
-
-func (m *Memory) updateTima() {
-	tima := m.HRAM[TIMA]
-	if tima == 0xFF {
-		m.HRAM[TIMA] = m.HRAM[TMA]
-		m.writeInterrupt(2)
-	} else {
-		m.HRAM[TIMA] = tima + 1
-	}
+func (m *MMU) incrTima() {
+	m.HRAM[TIMA]++
 }

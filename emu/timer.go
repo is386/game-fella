@@ -1,5 +1,7 @@
 package emu
 
+import "github.com/is386/GoBoy/emu/bits"
+
 var (
 	FREQ_MAP = map[uint8]int{
 		0: 1024,
@@ -26,7 +28,7 @@ func (t *Timer) update(cyc int) {
 		freq := t.getTimerFreq()
 		for t.count >= freq {
 			t.count -= freq
-			t.gb.mem.updateTima()
+			t.updateTima()
 		}
 	}
 }
@@ -35,16 +37,26 @@ func (t *Timer) updateDiv(cyc int) {
 	t.divCyc += cyc
 	if t.divCyc >= 255 {
 		t.divCyc -= 255
-		t.gb.mem.incrDiv()
+		t.gb.mmu.incrDiv()
 	}
 }
 
 func (t *Timer) isTimerEnabled() bool {
-	return t.gb.mem.isTimerEnabled()
+	return bits.Test(t.gb.mmu.readHRAM(TAC), 2)
 }
 
 func (t *Timer) getTimerFreq() int {
-	return FREQ_MAP[t.gb.mem.getTimerFreq()]
+	return FREQ_MAP[t.gb.mmu.readHRAM(TAC)&0x3]
+}
+
+func (t *Timer) updateTima() {
+	tima := t.gb.mmu.readHRAM(TIMA)
+	if tima == 0xFF {
+		t.gb.mmu.writeHRAM(TIMA, t.gb.mmu.readHRAM(TMA))
+		t.gb.mmu.writeInterrupt(2)
+	} else {
+		t.gb.mmu.incrTima()
+	}
 }
 
 func (t *Timer) resetTimer() {

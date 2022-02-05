@@ -31,15 +31,15 @@ func NewCPU(gb *GameBoy) *CPU {
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {
-	return c.gb.mem.readByte(addr)
+	return c.gb.mmu.readByte(addr)
 }
 
 func (c *CPU) readByteHL() uint8 {
-	return c.gb.mem.readByte(c.reg.getHL())
+	return c.gb.mmu.readByte(c.reg.getHL())
 }
 
 func (c *CPU) writeByte(addr uint16, val uint8) {
-	c.gb.mem.writeByte(addr, val)
+	c.gb.mmu.writeByte(addr, val)
 }
 
 func (c *CPU) writeByteHL(val uint8) {
