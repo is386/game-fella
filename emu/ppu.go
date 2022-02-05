@@ -17,8 +17,8 @@ var (
 )
 
 type PPU struct {
-	gb            *GameBoy
-	scanlineCount int
+	gb     *GameBoy
+	ppuCyc int
 }
 
 func NewPPU(gb *GameBoy) *PPU {
@@ -33,10 +33,12 @@ func (p *PPU) update(cyc int) {
 		return
 	}
 
-	p.scanlineCount -= cyc
-
-	// Operations related to moving/resetting the scanline
-	if p.scanlineCount <= 0 {
+	// It take 456 cycles to process one line on the screen.
+	// Once ppuCyc reaches 0, we increment LY (scanline reg),
+	// which moves us onto the next scanline. If the next line
+	// is above 153, we reset it to 0
+	p.ppuCyc -= cyc
+	if p.ppuCyc <= 0 {
 		p.gb.mmu.incrLY()
 		currLine := p.gb.mmu.readHRAM(LY)
 
@@ -45,7 +47,7 @@ func (p *PPU) update(cyc int) {
 			currLine = 0
 		}
 
-		p.scanlineCount += 456
+		p.ppuCyc = 456
 
 		if currLine == uint8(HEIGHT) {
 			p.gb.mmu.writeInterrupt(0)
@@ -59,7 +61,7 @@ func (p *PPU) setLCDStatus() {
 
 	// If the LCD/PPU is not enabled, then reset/do nothing
 	if !p.isLCDEnabled() {
-		p.scanlineCount = 456
+		p.ppuCyc = 456
 		p.gb.mmu.writeHRAM(LY, 0)
 		stat &= 252
 		stat = bits.Reset(stat, 0)
@@ -85,12 +87,12 @@ func (p *PPU) setLCDStatus() {
 		stat = bits.Set(stat, 0)
 		stat = bits.Reset(stat, 1)
 		reqInt = bits.Test(stat, 4)
-	} else if p.scanlineCount >= MODE2 {
+	} else if p.ppuCyc >= MODE2 {
 		mode = 2
 		stat = bits.Reset(stat, 0)
 		stat = bits.Set(stat, 1)
 		reqInt = bits.Test(stat, 5)
-	} else if p.scanlineCount >= MODE3 {
+	} else if p.ppuCyc >= MODE3 {
 		mode = 3
 		stat = bits.Set(stat, 0)
 		stat = bits.Set(stat, 1)
