@@ -17,8 +17,9 @@ var (
 )
 
 type PPU struct {
-	gb     *GameBoy
-	ppuCyc int
+	gb       *GameBoy
+	cyc      int
+	prevLine uint8
 }
 
 func NewPPU(gb *GameBoy) *PPU {
@@ -34,21 +35,21 @@ func (p *PPU) update(cyc int) {
 	}
 
 	// It take 456 cycles to process one line on the screen.
-	// Once ppuCyc reaches 0, we increment LY (scanline reg),
-	// which moves us onto the next scanline. If the next line
-	// is above 153, we reset it to 0
-	p.ppuCyc -= cyc
-	if p.ppuCyc <= 0 {
+	p.cyc -= cyc
+	if p.cyc <= 0 {
+		// Increment scanline
 		p.gb.mmu.incrLY()
 		currLine := p.gb.mmu.readHRAM(LY)
 
+		// Reset scanline to 0
 		if currLine > 153 {
 			p.gb.mmu.writeHRAM(LY, 0)
 			currLine = 0
 		}
 
-		p.ppuCyc = 456
+		p.cyc = 456
 
+		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
 			p.gb.mmu.writeInterrupt(0)
 		}
@@ -61,11 +62,10 @@ func (p *PPU) setLCDStatus() {
 
 	// If the LCD/PPU is not enabled, then reset/do nothing
 	if !p.isLCDEnabled() {
-		p.ppuCyc = 456
+		p.cyc = 456
 		p.gb.mmu.writeHRAM(LY, 0)
 		stat &= 252
-		stat = bits.Reset(stat, 0)
-		stat = bits.Reset(stat, 1)
+		stat = bits.Set(stat, 0)
 		p.gb.mmu.writeHRAM(STAT, stat)
 		return
 	}
@@ -87,12 +87,12 @@ func (p *PPU) setLCDStatus() {
 		stat = bits.Set(stat, 0)
 		stat = bits.Reset(stat, 1)
 		reqInt = bits.Test(stat, 4)
-	} else if p.ppuCyc >= MODE2 {
+	} else if p.cyc >= MODE2 {
 		mode = 2
 		stat = bits.Reset(stat, 0)
 		stat = bits.Set(stat, 1)
 		reqInt = bits.Test(stat, 5)
-	} else if p.ppuCyc >= MODE3 {
+	} else if p.cyc >= MODE3 {
 		mode = 3
 		stat = bits.Set(stat, 0)
 		stat = bits.Set(stat, 1)
@@ -106,19 +106,20 @@ func (p *PPU) setLCDStatus() {
 		reqInt = bits.Test(stat, 3)
 	}
 
-	// Write an interrupt between modes
-	if reqInt && mode != currMode {
-		p.gb.mmu.writeInterrupt(1)
-	}
+	// Check to see if the mode changed
+	modeChanged := mode != currMode
 
-	// Used to change palettes or perform special effects
-	if currLine == p.gb.mmu.readHRAM(LYC) {
+	// Write an interrupt between modes
+	if reqInt && modeChanged {
+		p.gb.mmu.writeInterrupt(1)
+	} else if bits.Test(stat, 6) && currLine != p.prevLine && modeChanged {
+		p.prevLine = currLine
 		stat = bits.Set(stat, 2)
-		if bits.Test(stat, 6) {
+		if currLine == p.gb.mmu.readHRAM(LYC) {
 			p.gb.mmu.writeInterrupt(1)
+		} else {
+			stat = bits.Reset(stat, 2)
 		}
-	} else {
-		stat = bits.Reset(stat, 2)
 	}
 	p.gb.mmu.writeHRAM(STAT, stat)
 }
@@ -209,7 +210,7 @@ func (p *PPU) renderTiles() {
 		// to the actual tile in VRAM
 		tileAddr := tileBaseAddr
 		if unsigned {
-			tileId := int16(p.gb.mmu.readByte(tileAddr))
+			tileId := int16(p.gb.mmu.readByte(tileIdAddr))
 			tileAddr += uint16(tileId * 16)
 		} else {
 			tileNum := int16(int8(p.gb.mmu.readByte(tileIdAddr)))
