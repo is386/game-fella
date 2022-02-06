@@ -210,11 +210,11 @@ func (p *PPU) renderTiles() {
 		// to the actual tile in VRAM
 		tileAddr := tileBaseAddr
 		if unsigned {
-			tileId := int16(p.gb.mmu.readByte(tileIdAddr))
-			tileAddr += uint16(tileId * 16)
+			tileId := p.gb.mmu.readByte(tileIdAddr)
+			tileAddr += uint16(tileId) * 16
 		} else {
-			tileNum := int16(int8(p.gb.mmu.readByte(tileIdAddr)))
-			tileAddr = uint16(int32(tileAddr) + int32(tileNum*16))
+			tileNum := int8(p.gb.mmu.readByte(tileIdAddr))
+			tileAddr = uint16(int16(tileAddr) + int16(tileNum)*16)
 		}
 
 		// Gets a row of the current tile
