@@ -297,13 +297,15 @@ func (p *PPU) renderSprites() {
 		yFlip := bits.Test(attrs, 6)
 		xFlip := bits.Test(attrs, 5)
 
-		line := scanline - y
+		// This is the offset from the scanline to the y-coord
+		// It is used to get the two bytes later
+		yOffset := scanline - y
 		if yFlip {
-			line = spriteHeight - line - 1
+			yOffset = spriteHeight - yOffset - 1
 		}
 
 		// Gets the tile bytes for this sprite from VRAM
-		tileAddr := uint16(tileIdx)*16 + uint16(line)*2 + 0x8000
+		tileAddr := uint16(tileIdx)*16 + uint16(yOffset)*2 + 0x8000
 		tileByte1 := p.gb.mmu.readByte(tileAddr)
 		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
 

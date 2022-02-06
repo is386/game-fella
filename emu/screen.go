@@ -61,6 +61,7 @@ func newSurface() *sdl.Surface {
 		panic(err)
 	}
 	sur.SetRLE(true)
+	sur.FillRect(nil, COLORS[0])
 	return sur
 }
 
