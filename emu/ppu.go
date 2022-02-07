@@ -44,6 +44,7 @@ func (p *PPU) update(cyc int) {
 			currLine = 0
 		}
 
+		// Reset the cycle count
 		p.cyc = 456
 
 		// Scanline goes back to the type (Vblank Interrupt)
@@ -104,11 +105,8 @@ func (p *PPU) setLCDStatus() {
 		reqInt = bits.Test(stat, 3)
 	}
 
-	// Check to see if the mode changed
-	modeChanged := mode != currMode
-
-	// Write an interrupt between modes
-	if reqInt && modeChanged {
+	// Request an interrupt if necessary
+	if reqInt {
 		p.gb.mmu.writeInterrupt(1)
 	} else if bits.Test(stat, 6) && currLine != p.prevLine {
 		p.prevLine = currLine
@@ -117,6 +115,7 @@ func (p *PPU) setLCDStatus() {
 			p.gb.mmu.writeInterrupt(1)
 		}
 	}
+
 	p.gb.mmu.writeHRAM(STAT, stat)
 }
 
@@ -127,115 +126,186 @@ func (p *PPU) isLCDEnabled() bool {
 func (p *PPU) drawScanline() {
 	lcdc := p.gb.mmu.readHRAM(LCDC)
 
-	// LCDC bit 0 determines if we draw the BG/Window
+	// LCDC bit 0 determines if we draw the BG
 	if bits.Test(lcdc, 0) {
-		p.renderTiles()
+		p.renderBG()
 	}
 
-	// LCDC bit 1 determines if we draw sprites
-	// if bits.Test(lcdc, 1) {
-	// 	p.renderSprites()
+	// LCDC bit 5 determines if we draw the BG
+	// if bits.Test(lcdc, 5) {
+	// 	p.renderWindow()
 	// }
+
+	// LCDC bit 1 determines if we draw the sprites
+	if bits.Test(lcdc, 1) {
+		p.renderSprites()
+	}
 }
 
-func (p *PPU) renderTiles() {
+func (p *PPU) renderBG() {
 	lcdc := p.gb.mmu.readHRAM(LCDC)
 	scanline := p.gb.mmu.readHRAM(LY)
-
-	var tileBaseAddr, bgMapAddr uint16
-	unsigned := true
-
 	scrollY := p.gb.mmu.readHRAM(SCY)
 	scrollX := p.gb.mmu.readHRAM(SCX)
-	windowY := p.gb.mmu.readHRAM(WY)
-	windowX := p.gb.mmu.readHRAM(WX) - 7
 
-	// Determines if we draw to the window or not. The background
-	// is scrollable while the window is fixed
-	usingWindow := bits.Test(lcdc, 5) && windowY <= scanline
+	var tileBaseAddr, bgMapAddr uint16
 
 	// Determines the base address of the tiles
 	if bits.Test(lcdc, 4) {
 		tileBaseAddr = 0x8000
 	} else {
 		tileBaseAddr = 0x9000
-		unsigned = false
 	}
 
 	// Determines which of the two 32x32 background maps to
 	// get the reference to the tile from
-	if !usingWindow {
-		if bits.Test(lcdc, 3) {
-			bgMapAddr = 0x9C00
-		} else {
-			bgMapAddr = 0x9800
-		}
+	if bits.Test(lcdc, 3) {
+		bgMapAddr = 0x9C00
 	} else {
-		if bits.Test(lcdc, 6) {
-			bgMapAddr = 0x9C00
-		} else {
-			bgMapAddr = 0x9800
-		}
+		bgMapAddr = 0x9800
 	}
 
 	// The y-position of the tile
-	y := scanline - windowY
-	if !usingWindow {
-		y = scrollY + scanline
-	}
-
-	// Determines the row of the tile in the tile map
-	tileMapRow := uint16(y/8) * 32
+	y := scanline
 
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
-	for column := uint8(0); column < uint8(WIDTH); column++ {
-		// The x-position of the tile
-		x := column + scrollX
-		if usingWindow && column >= windowX {
-			x = column - windowX
-		}
+	for x := uint8(0); x < uint8(WIDTH); x++ {
 
-		// Determines the column of the tile in the tile map
-		tileMapCol := uint16(x / 8)
+		// Determines the x and y values after scrolling is applied
+		scrolledX := uint16(x + scrollX)
+		scrolledY := uint16(y + scrollY)
+
+		// Determines where the pixel is relative to the BG map
+		bgMapX := scrolledX % 256
+		bgMapY := scrolledY % 256
+
+		// Determines which tile on the BG map the pixel is located
+		tileX := bgMapX / 8
+		tileY := bgMapY / 8
+
+		// Determines which pixel within the tile to draw
+		pixelX := bgMapX % 8
+		pixelY := bgMapY % 8
 
 		// Gets the address of the tileId in the tile map
-		tileIdAddr := bgMapAddr + tileMapRow + tileMapCol
+		tileIdx := tileY*32 + tileX
+		tileIdAddr := bgMapAddr + uint16(tileIdx)
 
 		// Gets the tileId from the tile map. The tileId points
 		// to the actual tile in VRAM
-		tileAddr := tileBaseAddr
-		if unsigned {
-			tileId := p.gb.mmu.readByte(tileIdAddr)
+		tileId := p.gb.mmu.readByte(tileIdAddr)
+
+		// Determines the address of the tile in VRAM
+		tileAddr := tileBaseAddr + uint16(pixelY)*2
+		if bits.Test(lcdc, 4) {
 			tileAddr += uint16(tileId) * 16
 		} else {
-			tileNum := int8(p.gb.mmu.readByte(tileIdAddr))
-			tileAddr = uint16(int16(tileAddr) + int16(tileNum)*16)
+			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
 		}
-
-		// Gets a row of the current tile
-		tileRow := (y % 8) * 2
 
 		// Each row of the tile is comprised of two bytes. So
 		// we use the tile address from the tileId and the row
 		// of the tile we want to draw to get the two bytes
-		tileByte1 := p.gb.mmu.readByte(tileAddr + uint16(tileRow))
-		tileByte2 := p.gb.mmu.readByte(tileAddr + uint16(tileRow) + 1)
+		tileByte1 := p.gb.mmu.readByte(tileAddr)
+		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
 
 		// The pixel we are drawing, based on the current column
-		pixelToDraw := uint8(int8((x%8)-7) * -1)
+		pixelToDraw := uint8(int8((pixelX%8)-7) * -1)
 
 		// Each bit in each byte is one pixel. The nth bit in each
 		// ile byte combines to make a 2 bit color id. The current
 		// pixel is the bit we want the color for
-		colorId := (bits.Value(tileByte2, uint8(pixelToDraw)))
+		colorId := (bits.Value(tileByte2, pixelToDraw))
 		colorId <<= 1
-		colorId |= bits.Value(tileByte1, uint8(pixelToDraw))
+		colorId |= bits.Value(tileByte1, pixelToDraw)
 
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
-		p.gb.screen.drawPixel(int32(column), int32(scanline), color)
+		p.gb.screen.drawPixel(int32(x), int32(y), color)
+	}
+}
+
+func (p *PPU) renderWindow() {
+	lcdc := p.gb.mmu.readHRAM(LCDC)
+	scanline := p.gb.mmu.readHRAM(LY)
+	windowY := p.gb.mmu.readHRAM(WY)
+	windowX := p.gb.mmu.readHRAM(WX) - 7
+
+	var tileBaseAddr, bgMapAddr uint16
+
+	// Determines the base address of the tiles
+	if bits.Test(lcdc, 4) {
+		tileBaseAddr = 0x8000
+	} else {
+		tileBaseAddr = 0x9000
+	}
+
+	// Determines which of the two 32x32 background maps to
+	// get the reference to the tile from
+	if bits.Test(lcdc, 6) {
+		bgMapAddr = 0x9C00
+	} else {
+		bgMapAddr = 0x9800
+	}
+
+	// The y-position of the tile
+	y := scanline
+
+	// Goes through each column of the screen, and draws the
+	// part of the tile that is on the scanline
+	for x := uint8(0); x < uint8(WIDTH); x++ {
+		// Determines the x and y values relative to the window
+		windowedX := uint16(x + windowX)
+		windowedY := uint16(y + windowY)
+
+		// Determines where the pixel is relative to the BG map
+		bgMapX := windowedX % 256
+		bgMapY := windowedY % 256
+
+		// Determines which tile on the BG map the pixel is located
+		tileX := bgMapX / 8
+		tileY := bgMapY / 8
+
+		// Determines which pixel within the tile to draw
+		pixelX := bgMapX % 8
+		pixelY := bgMapY % 8
+
+		// Gets the address of the tileId in the tile map
+		tileIdx := tileY*32 + tileX
+		tileIdAddr := bgMapAddr + uint16(tileIdx)
+
+		// Determines the address of the tile in VRAM
+		tileAddr := tileBaseAddr + uint16(pixelY)*2
+		if bits.Test(lcdc, 4) {
+			tileId := p.gb.mmu.readByte(tileIdAddr)
+			tileAddr += uint16(tileId) * 16
+		} else {
+			tileId := int8(p.gb.mmu.readByte(tileIdAddr))
+			tileAddr += uint16(int16(tileAddr) + int16(tileId)*16)
+		}
+
+		// Each row of the tile is comprised of two bytes. So
+		// we use the tile address from the tileId and the row
+		// of the tile we want to draw to get the two bytes
+		tileByte1 := p.gb.mmu.readByte(tileAddr)
+		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
+
+		// The pixel we are drawing, based on the current column
+		pixelToDraw := uint8(int8((pixelX%8)-7) * -1)
+
+		// Each bit in each byte is one pixel. The nth bit in each
+		// ile byte combines to make a 2 bit color id. The current
+		// pixel is the bit we want the color for
+		colorId := (bits.Value(tileByte2, pixelToDraw))
+		colorId <<= 1
+		colorId |= bits.Value(tileByte1, pixelToDraw)
+
+		// Use the 2 bit color id and the background palette
+		// to get the color for the current pixel
+		color := p.getColor(colorId, BGP)
+		p.gb.screen.drawPixel(int32(x), int32(y), color)
 	}
 }
 
@@ -292,6 +362,11 @@ func (p *PPU) renderSprites() {
 		// Whether or not to flip the sprite vertically/horizontally
 		yFlip := bits.Test(attrs, 6)
 		xFlip := bits.Test(attrs, 5)
+
+		// Bit 0 is ignored for 8x16 sprites
+		if spriteHeight == 16 {
+			tileIdx = bits.Reset(tileIdx, 0)
+		}
 
 		// This is the offset from the scanline to the y-coord
 		// It is used to get the two bytes later
