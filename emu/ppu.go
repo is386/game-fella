@@ -5,15 +5,12 @@ import (
 )
 
 var (
-	WIDTH        = 160
-	HEIGHT       = 144
-	SCALE        = 3
-	MODE1  uint8 = 144
-	MODE2  int   = 376
-	MODE3  int   = 204
-	DMG          = []uint32{0x0FBC9B, 0x0FAC8B, 0x306230, 0x0F380F}
-	MGB          = []uint32{0xCDDBE0, 0x949FA8, 0x666B70, 0x262B2B}
-	COLORS       = DMG
+	WIDTH  = 160
+	HEIGHT = 144
+	SCALE  = 3
+	DMG    = []uint32{0x0FBC9B, 0x0FAC8B, 0x306230, 0x0F380F}
+	MGB    = []uint32{0xCDDBE0, 0x949FA8, 0x666B70, 0x262B2B}
+	COLORS = DMG
 )
 
 type PPU struct {
@@ -65,7 +62,8 @@ func (p *PPU) setLCDStatus() {
 		p.cyc = 456
 		p.gb.mmu.writeHRAM(LY, 0)
 		stat &= 252
-		stat = bits.Set(stat, 0)
+		stat = bits.Reset(stat, 0)
+		stat = bits.Reset(stat, 1)
 		p.gb.mmu.writeHRAM(STAT, stat)
 		return
 	}
@@ -82,17 +80,17 @@ func (p *PPU) setLCDStatus() {
 	// Mode 1: pad time for the 10 additional invisible rows
 	// Mode 2: fetch asset
 	// Mode 3: render
-	if currLine >= MODE1 {
+	if currLine >= 144 {
 		mode = 1
 		stat = bits.Set(stat, 0)
 		stat = bits.Reset(stat, 1)
 		reqInt = bits.Test(stat, 4)
-	} else if p.cyc >= MODE2 {
+	} else if p.cyc >= 376 {
 		mode = 2
 		stat = bits.Reset(stat, 0)
 		stat = bits.Set(stat, 1)
 		reqInt = bits.Test(stat, 5)
-	} else if p.cyc >= MODE3 {
+	} else if p.cyc >= 204 {
 		mode = 3
 		stat = bits.Set(stat, 0)
 		stat = bits.Set(stat, 1)
@@ -112,13 +110,11 @@ func (p *PPU) setLCDStatus() {
 	// Write an interrupt between modes
 	if reqInt && modeChanged {
 		p.gb.mmu.writeInterrupt(1)
-	} else if bits.Test(stat, 6) && currLine != p.prevLine && modeChanged {
+	} else if bits.Test(stat, 6) && currLine != p.prevLine {
 		p.prevLine = currLine
-		stat = bits.Set(stat, 2)
 		if currLine == p.gb.mmu.readHRAM(LYC) {
+			stat = bits.Set(stat, 2)
 			p.gb.mmu.writeInterrupt(1)
-		} else {
-			stat = bits.Reset(stat, 2)
 		}
 	}
 	p.gb.mmu.writeHRAM(STAT, stat)
@@ -137,9 +133,9 @@ func (p *PPU) drawScanline() {
 	}
 
 	// LCDC bit 1 determines if we draw sprites
-	if bits.Test(lcdc, 1) {
-		p.renderSprites()
-	}
+	// if bits.Test(lcdc, 1) {
+	// 	p.renderSprites()
+	// }
 }
 
 func (p *PPU) renderTiles() {
