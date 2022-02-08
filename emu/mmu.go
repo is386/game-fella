@@ -2,6 +2,7 @@ package emu
 
 import (
 	"github.com/is386/GoBoy/emu/bits"
+	"github.com/is386/GoBoy/emu/cart"
 )
 
 var (
@@ -28,9 +29,8 @@ var (
 
 type MMU struct {
 	gb   *GameBoy
-	ROM  [0x7FFF - 0x0000 + 1]uint8
+	cart *cart.Cartridge
 	VRAM [0x9FFF - 0x8000 + 1]uint8
-	ERAM [0xBFFF - 0xA000 + 1]uint8
 	WRAM [0xDFFF - 0xC000 + 1]uint8
 	OAM  [0xFE9F - 0xFE00 + 1]uint8
 	HRAM [0xFFFF - 0xFF00 + 1]uint8
@@ -45,13 +45,13 @@ func (m *MMU) readByte(addr uint16) uint8 {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
-		return m.ROM[addr]
+		return m.cart.ReadByte(addr)
 
 	case 0x8000, 0x9000:
 		return m.VRAM[addr-0x8000]
 
 	case 0xA000, 0xB000:
-		return m.ERAM[addr-0xA000]
+		return m.cart.ReadByte(addr)
 
 	case 0xC000, 0xD000, 0xE000:
 		if addr >= 0xE000 {
@@ -77,7 +77,7 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
-		m.ROM[addr] = val
+		m.cart.WriteROM(addr, val)
 		return
 
 	case 0x8000, 0x9000:
@@ -85,7 +85,7 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 		return
 
 	case 0xA000, 0xB000:
-		m.ERAM[addr-0xA000] = val
+		m.cart.WriteRAM(addr, val)
 		return
 
 	case 0xC000, 0xD000, 0xE000:

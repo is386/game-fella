@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/is386/GoBoy/emu/cart"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -30,18 +31,16 @@ func NewGameBoy(rom string, debug bool) *GameBoy {
 	gb.screen = NewScreen()
 	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
-	gb.LoadRom(rom)
+	gb.loadRom(rom)
 	return gb
 }
 
-func (gb *GameBoy) LoadRom(filename string) {
+func (gb *GameBoy) loadRom(filename string) {
 	rom, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
-	for i := 0; i < len(rom); i++ {
-		gb.mmu.writeByte(uint16(i), rom[i])
-	}
+	gb.mmu.cart = cart.NewCartridge(rom)
 }
 
 func (gb *GameBoy) Run() {
