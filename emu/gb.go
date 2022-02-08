@@ -3,6 +3,7 @@ package emu
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/is386/GoBoy/emu/cart"
@@ -38,7 +39,8 @@ func NewGameBoy(rom string, debug bool) *GameBoy {
 func (gb *GameBoy) loadRom(filename string) {
 	rom, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(0)
 	}
 	gb.mmu.cart = cart.NewCartridge(rom)
 	for i := 0; i < len(rom); i++ {

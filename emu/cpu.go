@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	PC         uint16 = 0x0100
 	SP         uint16 = 0xFFFE
 	INT_VBLANK        = 0
 	INT_LCD           = 1
@@ -32,7 +31,7 @@ type CPU struct {
 }
 
 func NewCPU(gb *GameBoy) *CPU {
-	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
+	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), sp: SP}
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {

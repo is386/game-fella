@@ -1,6 +1,9 @@
 package emu
 
 import (
+	"fmt"
+	"io/ioutil"
+
 	"github.com/is386/GoBoy/emu/bits"
 	"github.com/is386/GoBoy/emu/cart"
 )
@@ -28,23 +31,45 @@ var (
 )
 
 type MMU struct {
-	gb   *GameBoy
-	cart *cart.Cartridge
-	VRAM [0x9FFF - 0x8000 + 1]uint8
-	WRAM [0xDFFF - 0xC000 + 1]uint8
-	OAM  [0xFE9F - 0xFE00 + 1]uint8
-	HRAM [0xFFFF - 0xFF00 + 1]uint8
+	gb          *GameBoy
+	cart        *cart.Cartridge
+	bootROM     [0x00FF - 0x0000 + 1]uint8
+	VRAM        [0x9FFF - 0x8000 + 1]uint8
+	WRAM        [0xDFFF - 0xC000 + 1]uint8
+	OAM         [0xFE9F - 0xFE00 + 1]uint8
+	HRAM        [0xFFFF - 0xFF00 + 1]uint8
+	bootEnabled bool
 }
 
 func NewMMU(gb *GameBoy) *MMU {
-	mmu := MMU{gb: gb}
+	mmu := MMU{gb: gb, bootEnabled: true}
+	mmu.loadBootRom()
 	return &mmu
+}
+
+func (m *MMU) loadBootRom() {
+	boot, err := ioutil.ReadFile("roms/boot.bin")
+	if err != nil {
+		m.gb.cpu.pc = 0x100
+		fmt.Println("roms/boot.bin not found. Skipping boot screen...")
+		return
+	}
+	for i := 0; i < len(boot); i++ {
+		m.bootROM[i] = boot[i]
+	}
 }
 
 func (m *MMU) readByte(addr uint16) uint8 {
 	switch addr & 0xF000 {
+	case 0x0000:
+		if m.bootEnabled && addr < 0x100 {
+			return m.bootROM[addr]
+		} else if m.bootEnabled && m.gb.cpu.pc == 0x100 {
+			m.bootEnabled = false
+		}
+		return m.cart.ReadByte(addr)
 
-	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
+	case 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
 		return m.cart.ReadByte(addr)
 
 	case 0x8000, 0x9000:

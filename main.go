@@ -1,6 +1,5 @@
 package main
 
-// TODO: GB Boot Screen
 // TODO: Memory Bank 1
 // TODO: Controller Input
 // TODO: Sound
@@ -14,7 +13,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/mario.gb"
+	ROM   = "roms/drmario.gb"
 )
 
 func main() {
