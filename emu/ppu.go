@@ -8,15 +8,16 @@ var (
 	WIDTH  = 160
 	HEIGHT = 144
 	SCALE  = 3
-	DMG    = []uint32{0x0FBC9B, 0x0FAC8B, 0x306230, 0x0F380F}
-	MGB    = []uint32{0xCDDBE0, 0x949FA8, 0x666B70, 0x262B2B}
-	COLORS = DMG
+	GREEN  = []uint32{0x0FBC9B, 0x0FAC8B, 0x306230, 0x0F380F}
+	GRAY   = []uint32{0xCDDBE0, 0x949FA8, 0x666B70, 0x262B2B}
+	COLORS = GREEN
 )
 
 type PPU struct {
-	gb       *GameBoy
-	cyc      int
-	prevLine uint8
+	gb           *GameBoy
+	cyc          int
+	prevLine     uint8
+	tileColorIds [160]uint8
 }
 
 func NewPPU(gb *GameBoy) *PPU {
@@ -168,6 +169,10 @@ func (p *PPU) renderBG() {
 	// The y-position of the tile
 	y := scanline
 
+	// This array will hold the color ids of tiles for sprite
+	// priority management
+	p.tileColorIds = [160]uint8{}
+
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
 	for x := uint8(0); x < uint8(WIDTH); x++ {
@@ -210,20 +215,18 @@ func (p *PPU) renderBG() {
 		tileByte1 := p.gb.mmu.readByte(tileAddr)
 		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
 
-		// The pixel we are drawing, based on the current column
-		pixelToDraw := uint8(int8((pixelX%8)-7) * -1)
-
 		// Each bit in each byte is one pixel. The nth bit in each
-		// ile byte combines to make a 2 bit color id. The current
+		// tile byte combines to make a 2 bit color id. The current
 		// pixel is the bit we want the color for
-		colorId := (bits.Value(tileByte2, pixelToDraw))
+		colorId := (bits.Value(tileByte2, uint8(7-pixelX)))
 		colorId <<= 1
-		colorId |= bits.Value(tileByte1, pixelToDraw)
+		colorId |= bits.Value(tileByte1, uint8(7-pixelX))
 
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
 		p.gb.screen.drawPixel(int32(x), int32(y), color)
+		p.tileColorIds[x] = colorId
 	}
 }
 
@@ -231,7 +234,7 @@ func (p *PPU) renderWindow() {
 	lcdc := p.gb.mmu.readHRAM(LCDC)
 	scanline := p.gb.mmu.readHRAM(LY)
 	windowY := p.gb.mmu.readHRAM(WY)
-	windowX := p.gb.mmu.readHRAM(WX) - 7
+	windowX := p.gb.mmu.readHRAM(WX)
 
 	var tileBaseAddr, bgMapAddr uint16
 
@@ -253,24 +256,25 @@ func (p *PPU) renderWindow() {
 	// The y-position of the tile
 	y := scanline
 
+	// Determines the y value relative to the window, and returns if its off screen
+	windowedY := uint16(y - windowY)
+	if windowedY >= uint16(HEIGHT) {
+		return
+	}
+
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
 	for x := uint8(0); x < uint8(WIDTH); x++ {
-		// Determines the x and y values relative to the window
-		windowedX := uint16(x + windowX)
-		windowedY := uint16(y + windowY)
-
-		// Determines where the pixel is relative to the BG map
-		bgMapX := windowedX % 256
-		bgMapY := windowedY % 256
+		// Determines the x value relative to the window
+		windowedX := uint16(x + windowX - 7)
 
 		// Determines which tile on the BG map the pixel is located
-		tileX := bgMapX / 8
-		tileY := bgMapY / 8
+		tileX := windowedX / 8
+		tileY := windowedY / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := bgMapX % 8
-		pixelY := bgMapY % 8
+		pixelX := windowedX % 8
+		pixelY := windowedY % 8
 
 		// Gets the address of the tileId in the tile map
 		tileIdx := tileY*32 + tileX
@@ -292,15 +296,12 @@ func (p *PPU) renderWindow() {
 		tileByte1 := p.gb.mmu.readByte(tileAddr)
 		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
 
-		// The pixel we are drawing, based on the current column
-		pixelToDraw := uint8(int8((pixelX%8)-7) * -1)
-
 		// Each bit in each byte is one pixel. The nth bit in each
 		// ile byte combines to make a 2 bit color id. The current
 		// pixel is the bit we want the color for
-		colorId := (bits.Value(tileByte2, pixelToDraw))
+		colorId := (bits.Value(tileByte2, uint8(7-pixelX)))
 		colorId <<= 1
-		colorId |= bits.Value(tileByte1, pixelToDraw)
+		colorId |= bits.Value(tileByte1, uint8(7-pixelX))
 
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
@@ -322,11 +323,14 @@ func (p *PPU) renderSprites() {
 	// How many sprites have we drawn for this scanline
 	spritesDrawn := 0
 
+	// Keeps track of the x values for drawn pixels
+	var drawnPixelXs [160]int32
+
 	// There are 40 sprites whose attributes exist in 0AM.
 	// Each sprite has attributes stored in 4 bytes
 	for sprite := 0; sprite < 40; sprite++ {
 		// The GB could only draw 10 sprites per scan line
-		if spritesDrawn == 10 {
+		if spritesDrawn >= 10 {
 			break
 		}
 
@@ -362,6 +366,7 @@ func (p *PPU) renderSprites() {
 		// Whether or not to flip the sprite vertically/horizontally
 		yFlip := bits.Test(attrs, 6)
 		xFlip := bits.Test(attrs, 5)
+		priority := !bits.Test(attrs, 7)
 
 		// Bit 0 is ignored for 8x16 sprites
 		if spriteHeight == 16 {
@@ -382,12 +387,19 @@ func (p *PPU) renderSprites() {
 
 		// Goes through the 8 pixels for current tile row
 		for tilePixel := uint8(0); tilePixel < 8; tilePixel++ {
-			pixel := int16(x) + int16(7-tilePixel)
-			if pixel < 0 || pixel >= int16(WIDTH) {
+			drawX := int16(x) + int16(7-tilePixel)
+			if drawX < 0 || drawX >= int16(WIDTH) {
 				continue
 			}
 
-			// Determines which pixel we are drawing
+			// If the pixel at drawX is not 0 (it has been drawn before)
+			// and if the previous x value for this pixel has lower, it
+			// has priority, so skip the current pixel
+			if drawnPixelXs[drawX] != 0 && drawnPixelXs[drawX] <= int32(x) {
+				continue
+			}
+
+			// Determines which pixel on the sprite we are drawing
 			pixelToDraw := tilePixel
 			if xFlip {
 				pixelToDraw = uint8(int8(pixelToDraw-7) * -1)
@@ -416,7 +428,12 @@ func (p *PPU) renderSprites() {
 
 			// Gets the color from the colorId
 			color := p.getColor(colorId, paletteAddr)
-			p.gb.screen.drawPixel(int32(pixel), int32(scanline), color)
+
+			// If the sprite has priority or if the tile is color 0, draw the sprite
+			if priority || p.tileColorIds[drawX] == 0 {
+				p.gb.screen.drawPixel(int32(drawX), int32(scanline), color)
+			}
+			drawnPixelXs[drawX] = int32(x)
 		}
 		spritesDrawn++
 	}
