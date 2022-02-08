@@ -14,7 +14,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/tetris.gb"
+	ROM   = "roms/mario.gb"
 )
 
 func main() {

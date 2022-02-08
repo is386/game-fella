@@ -14,7 +14,9 @@ func NewCartridge(rom []uint8) *Cartridge {
 	mbcType := rom[0x147]
 	switch mbcType {
 	case 0:
-		cart.mbc = NewMBC0(rom)
+		cart.mbc = NewMBC0()
+	case 1, 2, 3:
+		cart.mbc = NewMBC1(rom, mbcType)
 	default:
 		fmt.Printf("Unknown MBC Type: %d\n", mbcType)
 		os.Exit(0)

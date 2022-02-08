@@ -41,6 +41,9 @@ func (gb *GameBoy) loadRom(filename string) {
 		panic(err)
 	}
 	gb.mmu.cart = cart.NewCartridge(rom)
+	for i := 0; i < len(rom); i++ {
+		gb.mmu.writeByte(uint16(i), rom[i])
+	}
 }
 
 func (gb *GameBoy) Run() {
