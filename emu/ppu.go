@@ -19,6 +19,7 @@ type PPU struct {
 	cyc          int
 	prevLine     uint8
 	tileColorIds [160]uint8
+	winLineCount uint8
 }
 
 func NewPPU(gb *GameBoy) *PPU {
@@ -51,6 +52,8 @@ func (p *PPU) update(cyc int) {
 
 		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
+			p.tileColorIds = [160]uint8{}
+			p.winLineCount = 0
 			p.gb.mmu.writeInterrupt(INT_VBLANK)
 		}
 	}
@@ -127,7 +130,6 @@ func (p *PPU) drawScanline() {
 		p.renderBG()
 	}
 
-	// LCDC bit 5 determines if we draw the BG
 	if p.isWindowEnabled() {
 		p.renderWindow()
 	}
@@ -160,9 +162,6 @@ func (p *PPU) renderBG() {
 		bgMapAddr = 0x9800
 	}
 
-	// The y-position of the tile
-	y := scanline
-
 	// This array will hold the color ids of tiles for sprite
 	// priority management
 	p.tileColorIds = [160]uint8{}
@@ -173,7 +172,7 @@ func (p *PPU) renderBG() {
 
 		// Determines the x and y values after scrolling is applied
 		scrolledX := uint16(x + scrollX)
-		scrolledY := uint16(y + scrollY)
+		scrolledY := uint16(scanline + scrollY)
 
 		// Determines where the pixel is relative to the BG map
 		bgMapX := scrolledX % 256
@@ -219,7 +218,7 @@ func (p *PPU) renderBG() {
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
-		p.gb.screen.drawPixel(int32(x), int32(y), color)
+		p.gb.screen.drawPixel(int32(x), int32(scanline), color)
 		p.tileColorIds[x] = colorId
 	}
 }
@@ -227,7 +226,11 @@ func (p *PPU) renderBG() {
 func (p *PPU) renderWindow() {
 	scanline := p.gb.mmu.readHRAM(LY)
 	windowY := p.gb.mmu.readHRAM(WY)
-	windowX := p.gb.mmu.readHRAM(WX)
+	windowX := p.gb.mmu.readHRAM(WX) - 7
+
+	if scanline < windowY || windowX > 160 {
+		return
+	}
 
 	var tileBaseAddr, bgMapAddr uint16
 
@@ -246,41 +249,31 @@ func (p *PPU) renderWindow() {
 		bgMapAddr = 0x9800
 	}
 
-	// The y-position of the tile
-	y := scanline
-
-	// Determines the y value relative to the window, and returns if its off screen
-	windowedY := uint16(y - windowY)
-	if windowedY >= uint16(HEIGHT) {
-		return
-	}
-
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
-	for x := uint8(0); x < uint8(WIDTH); x++ {
-		// Determines the x value relative to the window
-		windowedX := uint16(x + windowX - 7)
-
+	for x := uint8(0); (x + windowX) < uint8(WIDTH); x++ {
 		// Determines which tile on the BG map the pixel is located
-		tileX := windowedX / 8
-		tileY := windowedY / 8
+		tileX := x / 8
+		tileY := p.winLineCount / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := windowedX % 8
-		pixelY := windowedY % 8
+		pixelX := x % 8
+		pixelY := p.winLineCount % 8
 
 		// Gets the address of the tileId in the tile map
 		tileIdx := tileY*32 + tileX
 		tileIdAddr := bgMapAddr + uint16(tileIdx)
 
+		// Gets the tileId from the tile map. The tileId points
+		// to the actual tile in VRAM
+		tileId := p.gb.mmu.readByte(tileIdAddr)
+
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr + uint16(pixelY)*2
 		if p.useFirstTileArea() {
-			tileId := p.gb.mmu.readByte(tileIdAddr)
 			tileAddr += uint16(tileId) * 16
 		} else {
-			tileId := int8(p.gb.mmu.readByte(tileIdAddr))
-			tileAddr += uint16(int16(tileAddr) + int16(tileId)*16)
+			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
 		}
 
 		// Each row of the tile is comprised of two bytes. So
@@ -299,8 +292,10 @@ func (p *PPU) renderWindow() {
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
-		p.gb.screen.drawPixel(int32(x), int32(y), color)
+		p.gb.screen.drawPixel(int32(x+windowX), int32(scanline), color)
+		p.tileColorIds[x+windowX] = colorId
 	}
+	p.winLineCount += 1
 }
 
 func (p *PPU) renderSprites() {
