@@ -9,7 +9,7 @@ import (
 var (
 	RAM_BANKS = map[uint8]int{
 		0x0: 0,
-		0x1: 0,
+		0x1: 1,
 		0x2: 1,
 		0x3: 4,
 		0x4: 16,
@@ -30,7 +30,7 @@ func NewCartridge(rom []uint8) *Cartridge {
 	case 0:
 		cart.mbc = NewMBC0()
 	case 1, 2, 3:
-		cart.mbc = NewMBC1(rom, mbcType, romBanks, ramBanks)
+		cart.mbc = NewMBC1(rom, uint32(romBanks), uint32(ramBanks))
 	default:
 		fmt.Printf("Unknown MBC Type: %d\n", mbcType)
 		os.Exit(0)

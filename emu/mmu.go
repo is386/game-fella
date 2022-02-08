@@ -48,7 +48,7 @@ func NewMMU(gb *GameBoy) *MMU {
 }
 
 func (m *MMU) loadBootRom() {
-	boot, err := ioutil.ReadFile("roms/boot.bin")
+	boot, err := ioutil.ReadFile("roms/bot.bin")
 	if err != nil {
 		m.gb.cpu.pc = 0x100
 		fmt.Println("roms/boot.bin not found. Skipping boot screen...")
@@ -110,7 +110,7 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 		return
 
 	case 0xA000, 0xB000:
-		m.cart.WriteRAM(addr-0xA000, val)
+		m.cart.WriteRAM(addr, val)
 		return
 
 	case 0xC000, 0xD000, 0xE000:

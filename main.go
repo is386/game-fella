@@ -13,7 +13,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/zelda.gb"
+	ROM   = "roms/rom_512kb.gb"
 )
 
 func main() {
