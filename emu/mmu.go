@@ -76,7 +76,7 @@ func (m *MMU) readByte(addr uint16) uint8 {
 		return m.VRAM[addr-0x8000]
 
 	case 0xA000, 0xB000:
-		return m.cart.ReadByte(addr - 0xA000)
+		return m.cart.ReadByte(addr)
 
 	case 0xC000, 0xD000, 0xE000:
 		if addr >= 0xE000 {

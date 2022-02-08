@@ -2,7 +2,19 @@ package cart
 
 import (
 	"fmt"
+	"math"
 	"os"
+)
+
+var (
+	RAM_BANKS = map[uint8]int{
+		0x0: 0,
+		0x1: 0,
+		0x2: 1,
+		0x3: 4,
+		0x4: 16,
+		0x5: 8,
+	}
 )
 
 type Cartridge struct {
@@ -12,11 +24,13 @@ type Cartridge struct {
 func NewCartridge(rom []uint8) *Cartridge {
 	cart := &Cartridge{}
 	mbcType := rom[0x147]
+	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
+	ramBanks := RAM_BANKS[rom[0x149]]
 	switch mbcType {
 	case 0:
 		cart.mbc = NewMBC0()
 	case 1, 2, 3:
-		cart.mbc = NewMBC1(rom, mbcType)
+		cart.mbc = NewMBC1(rom, mbcType, romBanks, ramBanks)
 	default:
 		fmt.Printf("Unknown MBC Type: %d\n", mbcType)
 		os.Exit(0)

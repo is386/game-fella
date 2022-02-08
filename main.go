@@ -13,7 +13,7 @@ import (
 
 var (
 	DEBUG = false
-	ROM   = "roms/drmario.gb"
+	ROM   = "roms/zelda.gb"
 )
 
 func main() {
