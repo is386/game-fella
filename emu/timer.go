@@ -53,7 +53,7 @@ func (t *Timer) updateTima() {
 	tima := t.gb.mmu.readHRAM(TIMA)
 	if tima == 0xFF {
 		t.gb.mmu.writeHRAM(TIMA, t.gb.mmu.readHRAM(TMA))
-		t.gb.mmu.writeInterrupt(2)
+		t.gb.mmu.writeInterrupt(INT_TIMER)
 	} else {
 		t.gb.mmu.incrTima()
 	}

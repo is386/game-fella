@@ -7,14 +7,19 @@ import (
 )
 
 var (
-	PC       uint16 = 0x0100
-	SP       uint16 = 0xFFFE
-	INT_ADDR        = map[uint8]uint16{
-		0: 0x40,
-		1: 0x48,
-		2: 0x50,
-		3: 0x58,
-		4: 0x60,
+	PC         uint16 = 0x0100
+	SP         uint16 = 0xFFFE
+	INT_VBLANK        = 0
+	INT_LCD           = 1
+	INT_TIMER         = 2
+	INT_SERIAL        = 3
+	INT_JOYPAD        = 4
+	INT_ADDR          = map[int]uint16{
+		INT_VBLANK: 0x40,
+		INT_LCD:    0x48,
+		INT_TIMER:  0x50,
+		INT_SERIAL: 0x58,
+		INT_JOYPAD: 0x60,
 	}
 )
 
@@ -99,7 +104,7 @@ func (c *CPU) checkIME() int {
 	if intF > 0 {
 		for i := 0; i < 5; i++ {
 			if (((intF >> i) & 1) == 1) && (((intE >> i) & 1) == 1) {
-				c.doInterrupt(uint8(i))
+				c.doInterrupt(i)
 				return 20
 			}
 		}
@@ -107,7 +112,7 @@ func (c *CPU) checkIME() int {
 	return 0
 }
 
-func (c *CPU) doInterrupt(i uint8) {
+func (c *CPU) doInterrupt(i int) {
 	if !c.ime && c.halted {
 		c.halted = false
 		return
@@ -115,7 +120,7 @@ func (c *CPU) doInterrupt(i uint8) {
 	c.ime = false
 	c.halted = false
 	intF := c.readByte(0xFF0F)
-	c.writeByte(0xFF0F, c.res(intF, i))
+	c.writeByte(0xFF0F, c.res(intF, uint8(i)))
 	c.push(c.pc)
 	c.pc = INT_ADDR[i]
 }

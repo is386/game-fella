@@ -10,6 +10,7 @@ var (
 	SCALE  = 3
 	GREEN  = []uint32{0x0FBC9B, 0x0FAC8B, 0x306230, 0x0F380F}
 	GRAY   = []uint32{0xCDDBE0, 0x949FA8, 0x666B70, 0x262B2B}
+	BEIGE  = []uint32{0xA1CFC4, 0x6D958B, 0x3C534D, 0x1F1F1F}
 	COLORS = GREEN
 )
 
@@ -50,7 +51,7 @@ func (p *PPU) update(cyc int) {
 
 		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
-			p.gb.mmu.writeInterrupt(0)
+			p.gb.mmu.writeInterrupt(INT_VBLANK)
 		}
 	}
 }
@@ -86,12 +87,12 @@ func (p *PPU) setLCDStatus() {
 		mode = 1
 		stat = bits.Set(stat, 0)
 		stat = bits.Reset(stat, 1)
-		reqInt = bits.Test(stat, 4)
+		reqInt = p.isVblankInterrupt(stat)
 	} else if p.cyc >= 376 {
 		mode = 2
 		stat = bits.Reset(stat, 0)
 		stat = bits.Set(stat, 1)
-		reqInt = bits.Test(stat, 5)
+		reqInt = p.isOAMInterrupt(stat)
 	} else if p.cyc >= 204 {
 		mode = 3
 		stat = bits.Set(stat, 0)
@@ -103,48 +104,41 @@ func (p *PPU) setLCDStatus() {
 		mode = 0
 		stat = bits.Reset(stat, 0)
 		stat = bits.Reset(stat, 1)
-		reqInt = bits.Test(stat, 3)
+		reqInt = p.isHblankInterrupt(stat)
 	}
 
 	// Request an interrupt if necessary
 	if reqInt {
-		p.gb.mmu.writeInterrupt(1)
-	} else if bits.Test(stat, 6) && currLine != p.prevLine {
+		p.gb.mmu.writeInterrupt(INT_LCD)
+	} else if p.isLYCInterrupt(stat) && currLine != p.prevLine {
 		p.prevLine = currLine
 		if currLine == p.gb.mmu.readHRAM(LYC) {
 			stat = bits.Set(stat, 2)
-			p.gb.mmu.writeInterrupt(1)
+			p.gb.mmu.writeInterrupt(INT_LCD)
 		}
 	}
 
 	p.gb.mmu.writeHRAM(STAT, stat)
 }
 
-func (p *PPU) isLCDEnabled() bool {
-	return bits.Test(p.gb.mmu.readHRAM(LCDC), 7)
-}
-
 func (p *PPU) drawScanline() {
-	lcdc := p.gb.mmu.readHRAM(LCDC)
-
 	// LCDC bit 0 determines if we draw the BG
-	if bits.Test(lcdc, 0) {
+	if p.isBGEnabled() {
 		p.renderBG()
 	}
 
 	// LCDC bit 5 determines if we draw the BG
-	// if bits.Test(lcdc, 5) {
-	// 	p.renderWindow()
-	// }
+	if p.isWindowEnabled() {
+		p.renderWindow()
+	}
 
 	// LCDC bit 1 determines if we draw the sprites
-	if bits.Test(lcdc, 1) {
+	if p.isSpritesEnabled() {
 		p.renderSprites()
 	}
 }
 
 func (p *PPU) renderBG() {
-	lcdc := p.gb.mmu.readHRAM(LCDC)
 	scanline := p.gb.mmu.readHRAM(LY)
 	scrollY := p.gb.mmu.readHRAM(SCY)
 	scrollX := p.gb.mmu.readHRAM(SCX)
@@ -152,7 +146,7 @@ func (p *PPU) renderBG() {
 	var tileBaseAddr, bgMapAddr uint16
 
 	// Determines the base address of the tiles
-	if bits.Test(lcdc, 4) {
+	if p.useFirstTileArea() {
 		tileBaseAddr = 0x8000
 	} else {
 		tileBaseAddr = 0x9000
@@ -160,7 +154,7 @@ func (p *PPU) renderBG() {
 
 	// Determines which of the two 32x32 background maps to
 	// get the reference to the tile from
-	if bits.Test(lcdc, 3) {
+	if p.useFirstBGTileArea() {
 		bgMapAddr = 0x9C00
 	} else {
 		bgMapAddr = 0x9800
@@ -203,7 +197,7 @@ func (p *PPU) renderBG() {
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr + uint16(pixelY)*2
-		if bits.Test(lcdc, 4) {
+		if p.useFirstTileArea() {
 			tileAddr += uint16(tileId) * 16
 		} else {
 			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
@@ -231,7 +225,6 @@ func (p *PPU) renderBG() {
 }
 
 func (p *PPU) renderWindow() {
-	lcdc := p.gb.mmu.readHRAM(LCDC)
 	scanline := p.gb.mmu.readHRAM(LY)
 	windowY := p.gb.mmu.readHRAM(WY)
 	windowX := p.gb.mmu.readHRAM(WX)
@@ -239,7 +232,7 @@ func (p *PPU) renderWindow() {
 	var tileBaseAddr, bgMapAddr uint16
 
 	// Determines the base address of the tiles
-	if bits.Test(lcdc, 4) {
+	if p.useFirstTileArea() {
 		tileBaseAddr = 0x8000
 	} else {
 		tileBaseAddr = 0x9000
@@ -247,7 +240,7 @@ func (p *PPU) renderWindow() {
 
 	// Determines which of the two 32x32 background maps to
 	// get the reference to the tile from
-	if bits.Test(lcdc, 6) {
+	if p.useFirstWindowTileArea() {
 		bgMapAddr = 0x9C00
 	} else {
 		bgMapAddr = 0x9800
@@ -282,7 +275,7 @@ func (p *PPU) renderWindow() {
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr + uint16(pixelY)*2
-		if bits.Test(lcdc, 4) {
+		if p.useFirstTileArea() {
 			tileId := p.gb.mmu.readByte(tileIdAddr)
 			tileAddr += uint16(tileId) * 16
 		} else {
@@ -311,12 +304,11 @@ func (p *PPU) renderWindow() {
 }
 
 func (p *PPU) renderSprites() {
-	lcdc := p.gb.mmu.readHRAM(LCDC)
 	scanline := p.gb.mmu.readHRAM(LY)
 
 	// Sprites are either 8x8 or 8x16
 	spriteHeight := uint8(8)
-	if bits.Test(lcdc, 2) {
+	if p.is8x16Sprite() {
 		spriteHeight = 16
 	}
 
@@ -364,9 +356,11 @@ func (p *PPU) renderSprites() {
 		attrs := p.gb.cpu.readByte(spriteBaseAddr + 3)
 
 		// Whether or not to flip the sprite vertically/horizontally
-		yFlip := bits.Test(attrs, 6)
-		xFlip := bits.Test(attrs, 5)
-		priority := !bits.Test(attrs, 7)
+		yFlip := p.isSpriteFlipY(attrs)
+		xFlip := p.isSpriteFlipX(attrs)
+
+		// Priority of sprite over BG
+		priority := p.spriteHasPriority(attrs)
 
 		// Bit 0 is ignored for 8x16 sprites
 		if spriteHeight == 16 {
@@ -420,10 +414,10 @@ func (p *PPU) renderSprites() {
 			// or 0xFF49. Each of these palettes will utilize
 			// the 4 colors in different ways
 			var paletteAddr uint8
-			if bits.Test(attrs, 4) {
-				paletteAddr = OBP1
-			} else {
+			if p.useFirstPalette(attrs) {
 				paletteAddr = OBP0
+			} else {
+				paletteAddr = OBP1
 			}
 
 			// Gets the color from the colorId
@@ -447,4 +441,74 @@ func (p *PPU) getColor(colorId uint8, paletteAddr uint8) uint32 {
 	lo := colorId << 1
 	colorNum := (bits.Value(palette, hi) << 1) | bits.Value(palette, lo)
 	return COLORS[colorNum]
+}
+
+// LCDC Bit Checks
+
+func (p *PPU) isLCDEnabled() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 7)
+}
+
+func (p *PPU) useFirstWindowTileArea() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 6)
+}
+
+func (p *PPU) isWindowEnabled() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 5)
+}
+
+func (p *PPU) useFirstTileArea() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 4)
+}
+
+func (p *PPU) useFirstBGTileArea() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 3)
+}
+
+func (p *PPU) is8x16Sprite() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 2)
+}
+
+func (p *PPU) isSpritesEnabled() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 1)
+}
+
+func (p *PPU) isBGEnabled() bool {
+	return bits.Test(p.gb.mmu.readHRAM(LCDC), 0)
+}
+
+// LCD Status Bit Checks
+
+func (p *PPU) isLYCInterrupt(stat uint8) bool {
+	return bits.Test(stat, 6)
+}
+
+func (p *PPU) isOAMInterrupt(stat uint8) bool {
+	return bits.Test(stat, 5)
+}
+
+func (p *PPU) isVblankInterrupt(stat uint8) bool {
+	return bits.Test(stat, 4)
+}
+
+func (p *PPU) isHblankInterrupt(stat uint8) bool {
+	return bits.Test(stat, 3)
+}
+
+// Sprite Attribute Bit Checks
+
+func (p *PPU) spriteHasPriority(spriteAttrs uint8) bool {
+	return !bits.Test(spriteAttrs, 7)
+}
+
+func (p *PPU) isSpriteFlipY(spriteAttrs uint8) bool {
+	return bits.Test(spriteAttrs, 6)
+}
+
+func (p *PPU) isSpriteFlipX(spriteAttrs uint8) bool {
+	return bits.Test(spriteAttrs, 5)
+}
+
+func (p *PPU) useFirstPalette(spriteAttrs uint8) bool {
+	return !bits.Test(spriteAttrs, 4)
 }
