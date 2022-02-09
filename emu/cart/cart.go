@@ -2,14 +2,13 @@ package cart
 
 import (
 	"fmt"
-	"math"
 	"os"
 )
 
 var (
 	RAM_BANKS = map[uint8]int{
 		0x0: 0,
-		0x1: 1,
+		0x1: 0,
 		0x2: 1,
 		0x3: 4,
 		0x4: 16,
@@ -24,7 +23,7 @@ type Cartridge struct {
 func NewCartridge(rom []uint8) *Cartridge {
 	cart := &Cartridge{}
 	mbcType := rom[0x147]
-	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
+	romBanks := 2 << rom[0x148]
 	ramBanks := RAM_BANKS[rom[0x149]]
 	switch mbcType {
 	case 0:
