@@ -25,3 +25,7 @@ func (m *MBC0) writeROM(addr uint16, val uint8) {
 func (m *MBC0) writeRAM(addr uint16, val uint8) {
 	m.RAM[addr-0xA000] = val
 }
+
+func (m *MBC0) getRomBank() uint32 {
+	return 0
+}

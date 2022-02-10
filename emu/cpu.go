@@ -83,9 +83,9 @@ func (c *CPU) execute() int {
 }
 
 func (c *CPU) print() {
-	fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
-		c.reg.A, c.flags.getF(), c.reg.B, c.reg.C, c.reg.D, c.reg.E, c.reg.H, c.reg.L,
-		c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
+	fmt.Printf("AF: %04X BC: %04X DE: %04X HL: %04X SP: %04X PC: %04X ROM: %02d (%02X %02X %02X %02X)\n",
+		c.reg.getAF(c.flags.getF()), c.reg.getBC(), c.reg.getDE(), c.reg.getHL(),
+		c.sp, c.pc, c.gb.mmu.cart.GetRomBank(), c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 	fmt.Scanln()
 }
 

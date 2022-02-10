@@ -1,6 +1,8 @@
 package main
 
-// TODO: Flag to change color
+// TODO: Flag for scale
+// TODO: Flag for colors
+// TODO: Add print funcs to mbc
 // TODO: Pass MBC1 Tests
 // TODO: MBC2
 // TODO: MBC3

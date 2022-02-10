@@ -4,10 +4,6 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-var (
-	WHITE uint32 = 0xFFFFFF
-)
-
 type Screen struct {
 	win *sdl.Window
 	sur *sdl.Surface
