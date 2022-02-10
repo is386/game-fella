@@ -41,22 +41,24 @@ type MMU struct {
 	bootEnabled bool
 }
 
-func NewMMU(gb *GameBoy) *MMU {
-	mmu := MMU{gb: gb, bootEnabled: true}
-	mmu.loadBootRom()
+func NewMMU(gb *GameBoy, bootEnabled bool) *MMU {
+	mmu := MMU{gb: gb, bootEnabled: bootEnabled}
+	if mmu.bootEnabled {
+		mmu.loadBootRom()
+	}
 	return &mmu
 }
 
 func (m *MMU) loadBootRom() {
-	boot, err := ioutil.ReadFile("roms/bot.bin")
+	boot, err := ioutil.ReadFile("roms/boot.bin")
 	if err != nil {
-		m.gb.cpu.pc = 0x100
 		fmt.Println("roms/boot.bin not found. Skipping boot screen...")
 		return
 	}
 	for i := 0; i < len(boot); i++ {
 		m.bootROM[i] = boot[i]
 	}
+	m.gb.cpu.pc = 0x00
 }
 
 func (m *MMU) readByte(addr uint16) uint8 {

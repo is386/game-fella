@@ -26,10 +26,10 @@ type GameBoy struct {
 	debug   bool
 }
 
-func NewGameBoy(rom string, debug bool) *GameBoy {
+func NewGameBoy(rom string, debug bool, bootEnabled bool) *GameBoy {
 	gb := &GameBoy{debug: debug}
 	gb.cpu = NewCPU(gb)
-	gb.mmu = NewMMU(gb)
+	gb.mmu = NewMMU(gb, bootEnabled)
 	gb.screen = NewScreen()
 	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
