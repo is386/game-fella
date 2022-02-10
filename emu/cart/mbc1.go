@@ -1,7 +1,5 @@
 package cart
 
-import "fmt"
-
 type MBC1 struct {
 	ROM         []uint8
 	RAM         [0x2000]uint8
@@ -28,8 +26,6 @@ func NewMBC1(rom []uint8, romSize uint32, ramSize uint32, romType uint8) MBC {
 }
 
 func (m *MBC1) readByte(addr uint16) uint8 {
-	fmt.Printf("%X, %d\n", addr, m.romBank)
-
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000:

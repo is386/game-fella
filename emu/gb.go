@@ -16,13 +16,14 @@ var (
 )
 
 type GameBoy struct {
-	cpu    *CPU
-	mmu    *MMU
-	screen *Screen
-	ppu    *PPU
-	timer  *Timer
-	cyc    int
-	debug  bool
+	cpu     *CPU
+	mmu     *MMU
+	screen  *Screen
+	ppu     *PPU
+	timer   *Timer
+	buttons *Buttons
+	cyc     int
+	debug   bool
 }
 
 func NewGameBoy(rom string, debug bool) *GameBoy {
@@ -32,6 +33,7 @@ func NewGameBoy(rom string, debug bool) *GameBoy {
 	gb.screen = NewScreen()
 	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
+	gb.buttons = NewButtons(gb)
 	gb.loadRom(rom)
 	return gb
 }
@@ -73,11 +75,17 @@ func (gb *GameBoy) Run() {
 
 func (gb *GameBoy) pollSDL() bool {
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-		switch event.(type) {
+		switch e := event.(type) {
 		case *sdl.QuitEvent:
 			return false
+		case *sdl.KeyboardEvent:
+			switch e.Type {
+			case sdl.KEYDOWN:
+				gb.buttons.keyDown(e.Keysym.Sym)
+			case sdl.KEYUP:
+				gb.buttons.keyUp(e.Keysym.Sym)
+			}
 		}
-		return true
 	}
 	return true
 }

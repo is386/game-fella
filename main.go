@@ -1,19 +1,20 @@
 package main
 
-// TODO: Memory Bank 1
-// TODO: Controller Input
-// TODO: Sound
 // TODO: Pass rom through CLI
 // TODO: Flag to change color
 // TODO: Flag to output cpu debugging
+// TODO: Pass MBC1 Tests
+// TODO: MBC2
+// TODO: MBC3
+// TODO: Sound
 
 import (
 	"github.com/is386/GoBoy/emu"
 )
 
 var (
-	DEBUG = true
-	ROM   = "roms/rom_512kb.gb"
+	DEBUG = false
+	ROM   = "roms/zelda.gb"
 )
 
 func main() {

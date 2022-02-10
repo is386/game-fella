@@ -92,6 +92,9 @@ func (m *MMU) readByte(addr uint16) uint8 {
 		}
 
 	case 0x0F00:
+		if addr == 0xFF00 {
+			return m.gb.buttons.readByte(addr)
+		}
 		return m.HRAM[addr-0xFF00]
 	}
 
@@ -135,7 +138,7 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 func (m *MMU) writeHRAM(reg uint8, val uint8) {
 	switch reg {
 	case JOYPAD:
-		m.HRAM[JOYPAD] = val | 0xC3
+		m.gb.buttons.writeByte(0xFF00, val)
 
 	case COMM2:
 		if val == 0x81 {
