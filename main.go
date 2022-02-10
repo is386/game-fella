@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	DEBUG = false
+	DEBUG = true
 	ROM   = "roms/rom_512kb.gb"
 )
 

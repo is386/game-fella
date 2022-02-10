@@ -1,79 +1,96 @@
 package cart
 
+import "fmt"
+
 type MBC1 struct {
-	ROM               []uint8
-	RAM               [0x2000]uint8
-	romBank           uint32
-	romBankUpperBits  uint32
-	ramBank           uint32
-	totalRomBanks     uint32
-	totalRamBanks     uint32
-	ramEnabled        bool
-	advBankingEnabled bool
+	ROM         []uint8
+	RAM         [0x2000]uint8
+	romType     uint8
+	romBank     uint32
+	upperBank   uint32
+	romOffset   uint32
+	romBankMask uint32
+	ramBank     uint32
+	ramOffset   uint32
+	ramBankMask uint32
+	mode        bool
+	ramEnabled  bool
 }
 
-func NewMBC1(rom []uint8, romBanks uint32, ramBanks uint32) MBC {
+func NewMBC1(rom []uint8, romSize uint32, ramSize uint32, romType uint8) MBC {
 	mbc := &MBC1{
-		ROM:           rom,
-		romBank:       1,
-		totalRomBanks: romBanks - 1,
-		totalRamBanks: ramBanks}
+		ROM:         rom,
+		romType:     romType,
+		romBank:     1,
+		romBankMask: (romSize / 0x4000) - 1,
+		ramBankMask: (ramSize / 0x2000) - 1}
 	return mbc
 }
 
 func (m *MBC1) readByte(addr uint16) uint8 {
+	fmt.Printf("%X, %d\n", addr, m.romBank)
+
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000:
-		return m.ROM[addr]
+		if m.mode {
+			offset := ((m.upperBank << 5) & m.romBankMask) * 0x4000
+			return m.ROM[offset+uint32(addr)]
+		} else {
+			return m.ROM[addr]
+		}
 
 	case 0x4000, 0x5000, 0x6000, 0x7000:
-		return m.ROM[(uint32(m.romBank*0x4000) + uint32(addr-0x4000))]
+		return m.ROM[m.romOffset+uint32(addr-0x4000)]
 
 	case 0xA000, 0xB000:
 		if m.ramEnabled {
-			return m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))]
+			return m.RAM[(m.ramOffset + uint32(addr-0xA000))]
+		} else {
+			return 0xFF
 		}
 	}
-	return 0xFF
+	return 0x00
 }
 
 func (m *MBC1) writeROM(addr uint16, val uint8) {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000:
-		if (val & 0x0F) == 0x0A {
-			m.ramEnabled = true
-		} else {
-			m.ramEnabled = false
+		if m.romType == 2 || m.romType == 3 {
+			m.ramEnabled = (val & 0x0F) == 0x0A
 		}
 
 	case 0x2000, 0x3000:
-		m.romBank = ((m.romBankUpperBits << 5) | uint32(val&0x1F)) % m.totalRomBanks
-		if m.romBank == 0 {
-			m.romBank++
+		val &= 0x1F
+		if val == 0 {
+			val = 1
 		}
+		m.romBank = uint32(val) & m.romBankMask
+		m.updateBanks()
 
 	case 0x4000, 0x5000:
-		if m.advBankingEnabled {
-			m.romBankUpperBits = uint32(val & 0x3)
-		} else if m.totalRamBanks > 0 {
-			m.ramBank = (uint32(val & 0x3)) % m.totalRamBanks
-		}
+		m.upperBank = uint32(val) & 0x3
+		m.updateBanks()
 
 	case 0x6000, 0x7000:
-		m.advBankingEnabled = (val & 1) == 0
-		if m.advBankingEnabled {
-			m.ramBank = 0
-		} else {
-			m.romBank &= 0x1F
-			m.romBankUpperBits = 0
-		}
+		m.mode = (val & 1) != 0
+		m.updateBanks()
 	}
 }
 
 func (m *MBC1) writeRAM(addr uint16, val uint8) {
 	if m.ramEnabled {
-		m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))] = val
+		m.RAM[m.ramOffset+uint32(addr-0xA000)] = val
 	}
+}
+
+func (m *MBC1) updateBanks() {
+	if m.mode {
+		m.ramBank = m.upperBank & m.ramBankMask
+		m.ramOffset = m.ramBank * 0x2000
+	} else {
+		m.ramOffset = 0
+	}
+	m.romOffset = ((m.romBank | (m.upperBank << 5)) & m.romBankMask) * 0x4000
 }

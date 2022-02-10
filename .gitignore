@@ -16,3 +16,4 @@
 roms/
 *.txt
 *.py
+.vscode/
