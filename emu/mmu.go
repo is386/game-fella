@@ -39,10 +39,11 @@ type MMU struct {
 	OAM         [0xFE9F - 0xFE00 + 1]uint8
 	HRAM        [0xFFFF - 0xFF00 + 1]uint8
 	bootEnabled bool
+	startup     bool
 }
 
 func NewMMU(gb *GameBoy, bootEnabled bool) *MMU {
-	mmu := MMU{gb: gb, bootEnabled: bootEnabled}
+	mmu := MMU{gb: gb, bootEnabled: bootEnabled, startup: true}
 	if mmu.bootEnabled {
 		mmu.loadBootRom()
 	}
@@ -107,7 +108,9 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
-		m.cart.WriteROM(addr, val)
+		if !m.startup {
+			m.cart.WriteROM(addr, val)
+		}
 		return
 
 	case 0x8000, 0x9000:
