@@ -18,9 +18,7 @@ var (
 )
 
 type Cartridge struct {
-	mbc           MBC
-	totalRomBanks uint32
-	totalRamBanks uint32
+	mbc MBC
 }
 
 func NewCartridge(rom []uint8) *Cartridge {
@@ -28,12 +26,10 @@ func NewCartridge(rom []uint8) *Cartridge {
 	mbcType := rom[0x147]
 	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
 	ramBanks := RAM_BANKS[rom[0x149]]
-	cart.totalRomBanks = uint32(romBanks) + 1
-	cart.totalRamBanks = uint32(ramBanks)
 
 	switch mbcType {
 	case 0:
-		cart.mbc = NewMBC0()
+		cart.mbc = NewMBC0(rom)
 	case 1, 2, 3:
 		cart.mbc = NewMBC1(rom, uint32(romBanks), uint32(ramBanks))
 	default:
@@ -57,8 +53,4 @@ func (c *Cartridge) WriteRAM(addr uint16, val uint8) {
 
 func (c *Cartridge) GetRomBank() uint32 {
 	return c.mbc.getRomBank()
-}
-
-func (c *Cartridge) GetTotalRomBanks() uint32 {
-	return c.totalRomBanks
 }

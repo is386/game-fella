@@ -1,8 +1,6 @@
 package main
 
-// TODO: Flag for scale
-// TODO: Add print funcs to mbc
-// TODO: Pass MBC1 Tests
+// TODO: Pass blarggs timing tests
 // TODO: MBC2
 // TODO: MBC3
 // TODO: Sound
