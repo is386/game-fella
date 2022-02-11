@@ -104,7 +104,7 @@ func (gb *GameBoy) update() {
 		gb.cyc += cyc
 		gb.ppu.update(cyc)
 		gb.timer.update(cyc)
-		gb.cpu.checkIME()
+		gb.cyc += gb.cpu.checkIME()
 	}
 	gb.screen.Update()
 }
