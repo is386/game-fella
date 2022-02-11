@@ -15,7 +15,7 @@ type MBC1 struct {
 func NewMBC1(rom []uint8, romBanks uint32, ramBanks uint32) MBC {
 	mbc := &MBC1{
 		ROM:           rom,
-		RAM:           make([]uint8, ramBanks*0x2000),
+		RAM:           make([]uint8, (ramBanks+1)*0x2000),
 		romBank:       1,
 		totalRomBanks: romBanks,
 		totalRamBanks: ramBanks}

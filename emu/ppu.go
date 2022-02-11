@@ -223,9 +223,16 @@ func (p *PPU) renderBG() {
 func (p *PPU) renderWindow() {
 	scanline := p.gb.mmu.readHRAM(LY)
 	windowY := p.gb.mmu.readHRAM(WY)
-	windowX := p.gb.mmu.readHRAM(WX) - 7
+	windowX0 := p.gb.mmu.readHRAM(WX)
 
-	if scanline < windowY || windowX > 160 {
+	var windowX uint8
+	if windowX0 < 7 {
+		windowX = 0
+	} else {
+		windowX = windowX0 - 7
+	}
+
+	if scanline < windowY || windowX > 159 {
 		return
 	}
 

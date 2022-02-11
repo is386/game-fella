@@ -47,6 +47,7 @@ func NewMMU(gb *GameBoy, bootEnabled bool) *MMU {
 	if mmu.bootEnabled {
 		mmu.loadBootRom()
 	}
+	mmu.HRAM[LY] = 0x90
 	return &mmu
 }
 
@@ -155,12 +156,6 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 		m.gb.timer.resetDivCyc()
 		m.HRAM[DIV] = 0
 
-	case TIMA:
-		m.HRAM[TIMA] = val
-
-	case TMA:
-		m.HRAM[TMA] = val
-
 	case TAC:
 		freq0 := m.gb.timer.getTimerFreq()
 		m.HRAM[TAC] = val | 0xF8
@@ -168,12 +163,6 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 		if freq0 != freq {
 			m.gb.timer.resetTimer()
 		}
-
-	case STAT:
-		m.HRAM[STAT] = val | 0x80
-
-	case LY:
-		m.HRAM[LY] = 0
 
 	case DMA:
 		m.dmaTransfer(val)
