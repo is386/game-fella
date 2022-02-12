@@ -13,7 +13,7 @@ import (
 	"github.com/is386/GoBoy/emu"
 )
 
-func parseArgs() (string, bool, bool) {
+func parseArgs() (string, bool, bool, int) {
 	parser := argparse.NewParser("GameFella", "A simple GameBoy emulator written in Go.")
 
 	romFile := parser.File("r", "rom", os.O_RDWR, 0600,
@@ -35,17 +35,24 @@ func parseArgs() (string, bool, bool) {
 			Default:  false,
 		})
 
+	scaleFlag := parser.Int("s", "--scale",
+		&argparse.Options{
+			Required: false,
+			Help:     "Scale of the screen",
+			Default:  3,
+		})
+
 	err := parser.Parse(os.Args)
 	if err != nil {
 		fmt.Print(parser.Usage(err))
 		os.Exit(0)
 	}
 
-	return romFile.Name(), *debugFlag, *noBootFlag
+	return romFile.Name(), *debugFlag, *noBootFlag, *scaleFlag
 }
 
 func main() {
-	rom, debug, noBoot := parseArgs()
-	gb := emu.NewGameBoy(rom, debug, !noBoot)
+	rom, debug, noBoot, scale := parseArgs()
+	gb := emu.NewGameBoy(rom, debug, !noBoot, scale)
 	gb.Run()
 }

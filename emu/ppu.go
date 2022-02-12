@@ -7,8 +7,7 @@ import (
 var (
 	WIDTH  = 160
 	HEIGHT = 144
-	SCALE  = 3
-	COLORS = []uint32{0xdeeffc, 0x758195, 0x434389, 0x000000}
+	COLORS = []uint32{0xfcefde, 0x958175, 0x894343, 0x000000}
 )
 
 type PPU struct {
@@ -39,19 +38,19 @@ func (p *PPU) update(cyc int) {
 		currLine := p.gb.mmu.readHRAM(LY)
 
 		// Reset scanline to 0
-		if currLine > 153 {
+		if currLine == 153 {
 			p.gb.mmu.writeHRAM(LY, 0)
 			currLine = 0
+			p.winLineCount = 0
 		}
 
 		// Reset the cycle count
-		p.cyc = 456
+		p.cyc += 456
 
 		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
 			p.gb.screen.Update()
 			p.tileColorIds = [160]uint8{}
-			p.winLineCount = 0
 			p.gb.mmu.writeInterrupt(INT_VBLANK)
 		}
 	}

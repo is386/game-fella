@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	FRAMETIME = time.Second / 144
-	CPS       = 4194304 / 144
+	FRAMETIME = time.Second / 60
+	CPS       = 4194304 / 60
 )
 
 type GameBoy struct {
@@ -27,11 +27,11 @@ type GameBoy struct {
 	running, debug bool
 }
 
-func NewGameBoy(rom string, debug bool, bootEnabled bool) *GameBoy {
+func NewGameBoy(rom string, debug bool, bootEnabled bool, scale int) *GameBoy {
 	gb := &GameBoy{debug: debug, running: true}
 	gb.cpu = NewCPU(gb)
 	gb.mmu = NewMMU(gb, bootEnabled)
-	gb.screen = NewScreen()
+	gb.screen = NewScreen(scale)
 	gb.ppu = NewPPU(gb)
 	gb.timer = NewTimer(gb)
 	gb.buttons = NewButtons(gb)
