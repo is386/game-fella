@@ -16,7 +16,7 @@ type PPU struct {
 	cyc          int
 	prevLine     uint8
 	tileColorIds [160]uint8
-	winLineCount uint8
+	winLineCount int
 }
 
 func NewPPU(gb *GameBoy) *PPU {
@@ -217,20 +217,14 @@ func (p *PPU) renderBG() {
 }
 
 func (p *PPU) renderWindow() {
-	scanline := p.gb.mmu.readHRAM(LY)
-	windowY := p.gb.mmu.readHRAM(WY)
-	windowX0 := p.gb.mmu.readHRAM(WX)
+	scanline := int(p.gb.mmu.readHRAM(LY))
+	windowY := int(p.gb.mmu.readHRAM(WY))
+	windowX := int(p.gb.mmu.readHRAM(WX))
 
-	var windowX uint8
-	if windowX0 < 7 {
-		windowX = 0
-	} else {
-		windowX = windowX0 - 7
-	}
-
-	if scanline < windowY || windowX > 159 {
+	if scanline < windowY || windowX > 166 {
 		return
 	}
+	windowX -= 7
 
 	var tileBaseAddr, bgMapAddr uint16
 
@@ -251,7 +245,7 @@ func (p *PPU) renderWindow() {
 
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
-	for x := uint8(0); (x + windowX) < uint8(WIDTH); x++ {
+	for x := 0; (x + windowX) < WIDTH; x++ {
 		// Determines which tile on the BG map the pixel is located
 		tileX := x / 8
 		tileY := p.winLineCount / 8
@@ -293,7 +287,9 @@ func (p *PPU) renderWindow() {
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
 		p.gb.screen.drawPixel(int32(x+windowX), int32(scanline), color)
-		p.tileColorIds[x+windowX] = colorId
+		if (x + windowX) >= 0 {
+			p.tileColorIds[x+windowX] = colorId
+		}
 	}
 	p.winLineCount += 1
 }
