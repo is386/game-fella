@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	FRAMETIME = time.Second / 60
-	CPS       = 4194304 / 60
+	FRAMETIME = time.Second / 144
+	CPS       = 4194304 / 144
 )
 
 type GameBoy struct {
@@ -92,7 +92,6 @@ func (gb *GameBoy) pollSDL() bool {
 }
 
 func (gb *GameBoy) update() {
-	gb.cyc = 0
 	for gb.cyc < CPS {
 		cyc := 4
 		if !gb.cpu.halted {
@@ -106,7 +105,7 @@ func (gb *GameBoy) update() {
 		gb.timer.update(cyc)
 		gb.cyc += gb.cpu.checkIME()
 	}
-	gb.screen.Update()
+	gb.cyc -= CPS
 }
 
 func (gb *GameBoy) setTitle(title string) {

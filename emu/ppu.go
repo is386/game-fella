@@ -8,7 +8,7 @@ var (
 	WIDTH  = 160
 	HEIGHT = 144
 	SCALE  = 3
-	COLORS = []uint32{0xbfd2e2, 0x758195, 0x434389, 0x000000}
+	COLORS = []uint32{0xdeeffc, 0x758195, 0x434389, 0x000000}
 )
 
 type PPU struct {
@@ -49,6 +49,7 @@ func (p *PPU) update(cyc int) {
 
 		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
+			p.gb.screen.Update()
 			p.tileColorIds = [160]uint8{}
 			p.winLineCount = 0
 			p.gb.mmu.writeInterrupt(INT_VBLANK)
