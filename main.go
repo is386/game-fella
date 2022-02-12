@@ -1,8 +1,9 @@
 package main
 
 // TODO: Pass blarggs timing tests
-// TODO: MBC2
-// TODO: MBC3
+// TODO: MBC3 RTC
+// TODO: Pass MBC3 Tests
+// TODO: Battery Saves
 // TODO: Sound
 
 import (

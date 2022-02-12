@@ -28,10 +28,16 @@ func NewCartridge(rom []uint8) *Cartridge {
 	ramBanks := RAM_BANKS[rom[0x149]]
 
 	switch mbcType {
-	case 0:
+
+	case 0x00:
 		cart.mbc = NewMBC0(rom)
-	case 1, 2, 3:
+
+	case 0x01, 0x02, 0x03:
 		cart.mbc = NewMBC1(rom, uint32(romBanks), uint32(ramBanks))
+
+	case 0x0F, 0x10, 0x11, 0x12, 0x13:
+		cart.mbc = NewMBC3(rom, uint32(romBanks), uint32(ramBanks))
+
 	default:
 		fmt.Printf("Unknown MBC Type: %d\n", mbcType)
 		os.Exit(0)

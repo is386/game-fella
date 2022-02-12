@@ -75,7 +75,7 @@ func (m *MBC1) writeROM(addr uint16, val uint8) {
 }
 
 func (m *MBC1) writeRAM(addr uint16, val uint8) {
-	if m.ramEnabled {
+	if m.ramEnabled && addr >= 0xA000 && addr <= 0xBFFF {
 		m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))] = val
 	}
 }
