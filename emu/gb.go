@@ -44,21 +44,19 @@ func (gb *GameBoy) loadRom(filename string) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	gb.mmu.cart = cart.NewCartridge(rom)
+	gb.mmu.cart = cart.NewCartridge(filename, rom)
 	for i := 0; i < len(rom); i++ {
 		gb.mmu.writeByte(uint16(i), rom[i])
 	}
 	gb.mmu.startup = false
+	gb.mmu.cart.Load()
 }
 
 func (gb *GameBoy) Run() {
 	ticker := time.NewTicker(FRAMETIME)
 	start := time.Now()
-	frames := 0
 
 	for range ticker.C {
-		frames++
-
 		gb.update()
 		running := gb.pollSDL()
 		if !running {
@@ -68,8 +66,8 @@ func (gb *GameBoy) Run() {
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			gb.setTitle(fmt.Sprintf("GameFella - FPS: %2v\n", frames))
-			frames = 0
+			gb.mmu.cart.Save()
+			gb.setTitle("GameFella")
 		}
 	}
 }

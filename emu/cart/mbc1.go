@@ -83,3 +83,11 @@ func (m *MBC1) writeRAM(addr uint16, val uint8) {
 func (m *MBC1) getRomBank() uint32 {
 	return m.romBank
 }
+
+func (m *MBC1) loadData(data []uint8) {
+	m.RAM = data
+}
+
+func (m *MBC1) saveData() []uint8 {
+	return m.RAM
+}

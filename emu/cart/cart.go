@@ -2,8 +2,10 @@ package cart
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 )
 
 var (
@@ -18,11 +20,13 @@ var (
 )
 
 type Cartridge struct {
-	mbc MBC
+	mbc         MBC
+	romFileName string
 }
 
-func NewCartridge(rom []uint8) *Cartridge {
-	cart := &Cartridge{}
+func NewCartridge(filename string, rom []uint8) *Cartridge {
+	i := strings.LastIndex(filename, ".")
+	cart := &Cartridge{romFileName: filename[:i]}
 	mbcType := rom[0x147]
 	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
 	ramBanks := RAM_BANKS[rom[0x149]]
@@ -59,4 +63,23 @@ func (c *Cartridge) WriteRAM(addr uint16, val uint8) {
 
 func (c *Cartridge) GetRomBank() uint32 {
 	return c.mbc.getRomBank()
+}
+
+func (c *Cartridge) Save() {
+	ram := c.mbc.saveData()
+	f, err := os.OpenFile(c.romFileName+".sav", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		panic(err)
+	}
+	f.Write(ram)
+	if err := f.Close(); err != nil {
+		panic(err)
+	}
+}
+
+func (c *Cartridge) Load() {
+	data, err := ioutil.ReadFile(c.romFileName + ".sav")
+	if err == nil {
+		c.mbc.loadData(data)
+	}
 }

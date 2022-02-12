@@ -28,3 +28,10 @@ func (m *MBC0) writeRAM(addr uint16, val uint8) {
 func (m *MBC0) getRomBank() uint32 {
 	return 0
 }
+
+func (m *MBC0) loadData(data []uint8) {
+}
+
+func (m *MBC0) saveData() []uint8 {
+	return nil
+}

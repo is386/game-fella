@@ -33,8 +33,7 @@ func newWindow() *sdl.Window {
 }
 
 func newRenderer(win *sdl.Window) *sdl.Renderer {
-	ren, err := sdl.CreateRenderer(win, -1,
-		sdl.RENDERER_ACCELERATED|sdl.RENDERER_PRESENTVSYNC)
+	ren, err := sdl.CreateRenderer(win, -1, 0)
 	if err != nil {
 		panic(err)
 	}

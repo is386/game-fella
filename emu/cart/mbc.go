@@ -5,4 +5,6 @@ type MBC interface {
 	writeROM(addr uint16, val uint8)
 	writeRAM(addr uint16, val uint8)
 	getRomBank() uint32
+	saveData() []uint8
+	loadData(data []uint8)
 }
