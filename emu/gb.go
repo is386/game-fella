@@ -16,19 +16,19 @@ var (
 )
 
 type GameBoy struct {
-	cpu     *CPU
-	mmu     *MMU
-	screen  *Screen
-	ppu     *PPU
-	timer   *Timer
-	buttons *Buttons
-	cart    *cart.Cartridge
-	cyc     int
-	debug   bool
+	cpu            *CPU
+	mmu            *MMU
+	screen         *Screen
+	ppu            *PPU
+	timer          *Timer
+	buttons        *Buttons
+	cart           *cart.Cartridge
+	cyc            int
+	running, debug bool
 }
 
 func NewGameBoy(rom string, debug bool, bootEnabled bool) *GameBoy {
-	gb := &GameBoy{debug: debug}
+	gb := &GameBoy{debug: debug, running: true}
 	gb.cpu = NewCPU(gb)
 	gb.mmu = NewMMU(gb, bootEnabled)
 	gb.screen = NewScreen()
@@ -51,7 +51,7 @@ func (gb *GameBoy) loadRom(filename string) {
 	}
 	gb.mmu.startup = false
 	gb.cart.Load()
-	gb.setTitle("GameFella")
+	gb.setTitle()
 }
 
 func (gb *GameBoy) Run() {
@@ -59,14 +59,13 @@ func (gb *GameBoy) Run() {
 	start := time.Now()
 
 	for range ticker.C {
-		gb.update()
-		running := gb.pollSDL()
-		if !running {
+		if !gb.running {
 			break
 		}
-
+		gb.update()
+		gb.pollSDL()
 		elapsed := time.Since(start)
-		if elapsed > time.Second {
+		if elapsed > time.Second*30 {
 			start = time.Now()
 			gb.cart.Save()
 		}
@@ -77,7 +76,7 @@ func (gb *GameBoy) pollSDL() bool {
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 		switch e := event.(type) {
 		case *sdl.QuitEvent:
-			return false
+			gb.close()
 		case *sdl.KeyboardEvent:
 			switch e.Type {
 			case sdl.KEYDOWN:
@@ -107,8 +106,14 @@ func (gb *GameBoy) update() {
 	gb.cyc -= CPS
 }
 
-func (gb *GameBoy) setTitle(title string) {
-	gb.screen.win.SetTitle(title)
+func (gb *GameBoy) close() {
+	gb.cart.Save()
+	gb.screen.Destroy()
+	gb.running = false
+}
+
+func (gb *GameBoy) setTitle() {
+	gb.screen.win.SetTitle("GameFella")
 }
 
 func (gb *GameBoy) printSerialLink() {

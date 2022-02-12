@@ -1,8 +1,6 @@
 package emu
 
 import (
-	"os"
-
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -68,7 +66,7 @@ func (b *Buttons) keyDown(key sdl.Keycode) {
 		b.rows[0] &= 0xD
 		bHit = true
 	case sdl.K_ESCAPE:
-		os.Exit(0)
+		b.gb.close()
 	}
 
 	if (dHit && b.column == 0x10) || (bHit && b.column == 0x20) {
@@ -95,6 +93,6 @@ func (b *Buttons) keyUp(key sdl.Keycode) {
 	case sdl.K_k: // B
 		b.rows[0] |= 0x2
 	case sdl.K_ESCAPE:
-		os.Exit(0)
+		b.gb.close()
 	}
 }
