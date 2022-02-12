@@ -171,17 +171,13 @@ func (p *PPU) renderBG() {
 		scrolledX := uint16(x + scrollX)
 		scrolledY := uint16(scanline + scrollY)
 
-		// Determines where the pixel is relative to the BG map
-		bgMapX := scrolledX % 256
-		bgMapY := scrolledY % 256
-
 		// Determines which tile on the BG map the pixel is located
-		tileX := bgMapX / 8
-		tileY := bgMapY / 8
+		tileX := scrolledX / 8
+		tileY := scrolledY / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := bgMapX % 8
-		pixelY := bgMapY % 8
+		pixelX := scrolledX % 8
+		pixelY := scrolledY % 8
 
 		// Gets the address of the tileId in the tile map
 		tileIdx := tileY*32 + tileX
@@ -303,10 +299,10 @@ func (p *PPU) renderWindow() {
 }
 
 func (p *PPU) renderSprites() {
-	scanline := p.gb.mmu.readHRAM(LY)
+	scanline := int(p.gb.mmu.readHRAM(LY))
 
 	// Sprites are either 8x8 or 8x16
-	spriteHeight := uint8(8)
+	spriteHeight := 8
 	if p.is8x16Sprite() {
 		spriteHeight = 16
 	}
@@ -315,7 +311,7 @@ func (p *PPU) renderSprites() {
 	spritesDrawn := 0
 
 	// Keeps track of the x values for drawn pixels
-	var drawnPixelXs [160]int32
+	var drawnPixelXs [160]int
 
 	// There are 40 sprites whose attributes exist in 0AM.
 	// Each sprite has attributes stored in 4 bytes
@@ -333,18 +329,19 @@ func (p *PPU) renderSprites() {
 
 		// Byte 0 contains the y-position of the sprite plus 16.
 		// The plus 16 is for the max height of the sprite
-		y := p.gb.cpu.readByte(spriteBaseAddr) - 16
+		y := int(p.gb.cpu.readByte(spriteBaseAddr))
 
 		// If the scanline is below the sprite's y-position or
 		// if the scanline is above the sprite's height, then
 		// we can't draw it
-		if scanline < y || scanline >= (y+spriteHeight) {
+		if (scanline+16) < y || (scanline+16) >= (y+spriteHeight) {
 			continue
 		}
+		y -= 16
 
 		// Byte 1 contains the x-position of the sprite plus 8.
 		// The plus 8 is for the max width of the sprite
-		x := p.gb.cpu.readByte(spriteBaseAddr+1) - 8
+		x := int(p.gb.cpu.readByte(spriteBaseAddr+1)) - 8
 
 		// Byte 2 contains the index of the tile that contains
 		// what the sprite actually looks like
@@ -379,23 +376,23 @@ func (p *PPU) renderSprites() {
 		tileByte2 := p.gb.mmu.readByte(tileAddr + 1)
 
 		// Goes through the 8 pixels for current tile row
-		for tilePixel := uint8(0); tilePixel < 8; tilePixel++ {
-			drawX := int16(x) + int16(7-tilePixel)
-			if drawX < 0 || drawX >= int16(WIDTH) {
+		for tilePixel := 0; tilePixel < 8; tilePixel++ {
+			drawX := x + 7 - tilePixel
+			if drawX < 0 || drawX >= WIDTH {
 				continue
 			}
 
 			// If the pixel at drawX is not 0 (it has been drawn before)
 			// and if the previous x value for this pixel has lower, it
 			// has priority, so skip the current pixel
-			if drawnPixelXs[drawX] != 0 && drawnPixelXs[drawX] <= int32(x) {
+			if drawnPixelXs[drawX] != 0 && drawnPixelXs[drawX] <= x {
 				continue
 			}
 
 			// Determines which pixel on the sprite we are drawing
 			pixelToDraw := tilePixel
 			if xFlip {
-				pixelToDraw = uint8(int8(pixelToDraw-7) * -1)
+				pixelToDraw = (pixelToDraw - 7) * -1
 			}
 
 			// Gets the color on the tile for the pixel we are
@@ -426,7 +423,7 @@ func (p *PPU) renderSprites() {
 			if priority || p.tileColorIds[drawX] == 0 {
 				p.gb.screen.drawPixel(int32(drawX), int32(scanline), color)
 			}
-			drawnPixelXs[drawX] = int32(x)
+			drawnPixelXs[drawX] = x
 		}
 		spritesDrawn++
 	}
