@@ -22,6 +22,7 @@ type GameBoy struct {
 	ppu     *PPU
 	timer   *Timer
 	buttons *Buttons
+	cart    *cart.Cartridge
 	cyc     int
 	debug   bool
 }
@@ -44,12 +45,13 @@ func (gb *GameBoy) loadRom(filename string) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	gb.mmu.cart = cart.NewCartridge(filename, rom)
+	gb.cart = cart.NewCartridge(filename, rom)
 	for i := 0; i < len(rom); i++ {
 		gb.mmu.writeByte(uint16(i), rom[i])
 	}
 	gb.mmu.startup = false
-	gb.mmu.cart.Load()
+	gb.cart.Load()
+	gb.setTitle("GameFella")
 }
 
 func (gb *GameBoy) Run() {
@@ -66,8 +68,7 @@ func (gb *GameBoy) Run() {
 		elapsed := time.Since(start)
 		if elapsed > time.Second {
 			start = time.Now()
-			gb.mmu.cart.Save()
-			gb.setTitle("GameFella")
+			gb.cart.Save()
 		}
 	}
 }

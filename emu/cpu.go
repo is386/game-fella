@@ -88,7 +88,7 @@ func (c *CPU) print() {
 	// c.sp, c.pc, c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 	fmt.Printf("AF: %04X BC: %04X DE: %04X HL: %04X SP: %04X PC: %04X ROM: %02d (%02X %02X %02X %02X)\n",
 		c.reg.getAF(c.flags.getF()), c.reg.getBC(), c.reg.getDE(), c.reg.getHL(),
-		c.sp, c.pc, c.gb.mmu.cart.GetRomBank(), c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
+		c.sp, c.pc, c.gb.cart.GetRomBank(), c.readByte(c.pc), c.readByte(c.pc+1), c.readByte(c.pc+2), c.readByte(c.pc+3))
 	fmt.Scanln()
 }
 
