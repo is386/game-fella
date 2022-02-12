@@ -8,7 +8,7 @@ var (
 	WIDTH  = 160
 	HEIGHT = 144
 	SCALE  = 3
-	COLORS = []uint32{0xA1CFC4, 0x6D958B, 0x3C534D, 0x1F1F1F}
+	COLORS = []uint32{0xbfd2e2, 0x758195, 0x434389, 0x000000}
 )
 
 type PPU struct {
