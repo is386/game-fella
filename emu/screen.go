@@ -15,7 +15,7 @@ func NewScreen(scale int) *Screen {
 		scale = 1
 	}
 
-	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
 		panic(err)
 	}
 

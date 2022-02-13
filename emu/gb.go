@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/is386/GoBoy/emu/apu"
 	"github.com/is386/GoBoy/emu/cart"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -20,6 +21,7 @@ type GameBoy struct {
 	mmu            *MMU
 	screen         *Screen
 	ppu            *PPU
+	apu            *apu.APU
 	timer          *Timer
 	buttons        *Buttons
 	cart           *cart.Cartridge
@@ -33,6 +35,7 @@ func NewGameBoy(rom string, debug bool, bootEnabled bool, scale int) *GameBoy {
 	gb.mmu = NewMMU(gb, bootEnabled)
 	gb.screen = NewScreen(scale)
 	gb.ppu = NewPPU(gb)
+	gb.apu = apu.NewAPU()
 	gb.timer = NewTimer(gb)
 	gb.buttons = NewButtons(gb)
 	gb.loadRom(rom)
