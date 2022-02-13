@@ -21,12 +21,22 @@ var (
 
 type Cartridge struct {
 	mbc         MBC
+	name        string
 	romFileName string
 }
 
 func NewCartridge(filename string, rom []uint8) *Cartridge {
 	i := strings.LastIndex(filename, ".")
 	cart := &Cartridge{romFileName: filename[:i]}
+
+	for i := 0x134; i < 0x144; i++ {
+		if rom[i] == 0 {
+			break
+		}
+		cart.name += fmt.Sprintf("%c", rom[i])
+	}
+	cart.name = strings.Title(strings.ToLower(cart.name))
+
 	mbcType := rom[0x147]
 	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
 	ramBanks := RAM_BANKS[rom[0x149]]
@@ -59,6 +69,10 @@ func (c *Cartridge) WriteROM(addr uint16, val uint8) {
 
 func (c *Cartridge) WriteRAM(addr uint16, val uint8) {
 	c.mbc.writeRAM(addr, val)
+}
+
+func (c *Cartridge) GetName() string {
+	return c.name
 }
 
 func (c *Cartridge) GetRomBank() uint32 {

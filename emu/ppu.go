@@ -38,10 +38,9 @@ func (p *PPU) update(cyc int) {
 		currLine := p.gb.mmu.readHRAM(LY)
 
 		// Reset scanline to 0
-		if currLine == 153 {
+		if currLine > 153 {
 			p.gb.mmu.writeHRAM(LY, 0)
 			currLine = 0
-			p.winLineCount = 0
 		}
 
 		// Reset the cycle count
@@ -52,6 +51,7 @@ func (p *PPU) update(cyc int) {
 			p.gb.screen.Update()
 			p.tileColorIds = [160]uint8{}
 			p.gb.mmu.writeInterrupt(INT_VBLANK)
+			p.winLineCount = 0
 		}
 	}
 }

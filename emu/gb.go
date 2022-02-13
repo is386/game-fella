@@ -51,22 +51,34 @@ func (gb *GameBoy) loadRom(filename string) {
 	}
 	gb.mmu.startup = false
 	gb.cart.Load()
-	gb.setTitle()
+	gb.setTitle(60)
 }
 
 func (gb *GameBoy) Run() {
 	ticker := time.NewTicker(FRAMETIME)
-	start := time.Now()
+	fpsTime := time.Now()
+	saveTime := time.Now()
+	frames := 0
 
 	for range ticker.C {
 		if !gb.running {
 			break
 		}
+
+		frames++
 		gb.update()
 		gb.pollSDL()
-		elapsed := time.Since(start)
+
+		elapsed := time.Since(fpsTime)
+		if elapsed > time.Second {
+			fpsTime = time.Now()
+			gb.setTitle(frames)
+			frames = 0
+		}
+
+		elapsed = time.Since(saveTime)
 		if elapsed > time.Second*30 {
-			start = time.Now()
+			saveTime = time.Now()
 			gb.cart.Save()
 		}
 	}
@@ -112,8 +124,8 @@ func (gb *GameBoy) close() {
 	gb.running = false
 }
 
-func (gb *GameBoy) setTitle() {
-	gb.screen.win.SetTitle("GameFella")
+func (gb *GameBoy) setTitle(fps int) {
+	gb.screen.win.SetTitle(fmt.Sprintf("GameFella | %s | %2v FPS", gb.cart.GetName(), fps))
 }
 
 func (gb *GameBoy) printSerialLink() {
