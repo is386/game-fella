@@ -32,20 +32,22 @@ var (
 
 	SAMPLE_RATE = 48000
 	BUFFER_SIZE = 2048
-	CPS         = 4194304 / SAMPLE_RATE
+	CLOCK_SPEED = 4194304
 )
 
 type APU struct {
-	c2       *Channel2
-	cyc      int
-	player   *oto.Player
-	buffer   chan [2]uint8
-	volLeft  uint8
-	volRight uint8
+	c2            *Channel2
+	cyc           int
+	frameSequence int
+	sampleCounter int
+	player        *oto.Player
+	buffer        chan [2]uint8
+	volLeft       uint8
+	volRight      uint8
 }
 
 func NewAPU() *APU {
-	apu := &APU{}
+	apu := &APU{cyc: 8192}
 	apu.c2 = NewChannel2()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
@@ -85,16 +87,46 @@ func (a *APU) initSound() {
 }
 
 func (a *APU) Update(cyc int) {
-	a.cyc += cyc
-	if a.cyc < CPS {
-		return
+	for i := 0; i < cyc; i++ {
+		a.frameSequencer()
+		a.updateChannels()
+		a.playSound()
 	}
-	a.cyc -= CPS
+}
 
+func (a *APU) frameSequencer() {
+	a.cyc--
+	if a.cyc <= 0 {
+		a.cyc = 8192
+		switch a.frameSequence {
+		case 0:
+			a.c2.clockLength()
+		case 2:
+			a.c2.clockLength()
+		case 4:
+			a.c2.clockLength()
+		case 6:
+			a.c2.clockLength()
+		case 7:
+			a.c2.clockEnvelope()
+		}
+		a.frameSequence++
+		a.frameSequence &= 7
+	}
+}
+
+func (a *APU) updateChannels() {
 	a.c2.update()
-	sampleL := a.c2.left
-	sampleR := a.c2.right
-	a.buffer <- [2]uint8{uint8(sampleL * uint16(a.volLeft)), uint8(sampleR * uint16(a.volRight))}
+}
+
+func (a *APU) playSound() {
+	a.sampleCounter += SAMPLE_RATE
+	if a.sampleCounter >= CLOCK_SPEED {
+		a.sampleCounter -= CLOCK_SPEED
+		sampleL := a.c2.left
+		sampleR := a.c2.right
+		a.buffer <- [2]uint8{uint8(sampleL * uint16(a.volLeft)), uint8(sampleR * uint16(a.volRight))}
+	}
 }
 
 func (a *APU) ReadByte(addr uint16) uint8 {
