@@ -37,6 +37,7 @@ var (
 )
 
 type APU struct {
+	c1            *Channel1
 	c2            *Channel2
 	cyc           int
 	frameSequence int
@@ -49,6 +50,7 @@ type APU struct {
 
 func NewAPU() *APU {
 	apu := &APU{cyc: 8192}
+	apu.c1 = NewChannel1()
 	apu.c2 = NewChannel2()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
@@ -64,14 +66,22 @@ func NewAPU() *APU {
 
 func (a *APU) startSoundRoutine() {
 	ticker := time.NewTicker(FRAMETIME)
+	targetSamples := SAMPLE_RATE / 60
+
 	go func() {
 		var reading [2]uint8
+		var buffer []uint8
+
 		for range ticker.C {
 			bufLen := len(a.buffer)
-			buffer := make([]uint8, bufLen*2)
-			for i := 0; i < bufLen*2; i += 2 {
-				reading = <-a.buffer
-				buffer[i], buffer[i+1] = reading[0], reading[1]
+
+			if bufLen >= targetSamples/2 {
+				newBuffer := make([]uint8, bufLen*2)
+				for i := 0; i < bufLen*2; i += 2 {
+					reading = <-a.buffer
+					newBuffer[i], newBuffer[i+1] = reading[0], reading[1]
+				}
+				buffer = newBuffer
 			}
 			a.player.Write(buffer)
 		}
@@ -92,14 +102,21 @@ func (a *APU) frameSequencer() {
 		a.cyc = 8192
 		switch a.frameSequence {
 		case 0:
+			a.c1.clockLength()
 			a.c2.clockLength()
 		case 2:
+			a.c1.clockSweep()
+			a.c1.clockLength()
 			a.c2.clockLength()
 		case 4:
+			a.c1.clockLength()
 			a.c2.clockLength()
 		case 6:
+			a.c1.clockSweep()
+			a.c1.clockLength()
 			a.c2.clockLength()
 		case 7:
+			a.c1.clockEnvelope()
 			a.c2.clockEnvelope()
 		}
 		a.frameSequence++
@@ -108,6 +125,7 @@ func (a *APU) frameSequencer() {
 }
 
 func (a *APU) updateChannels() {
+	a.c1.update()
 	a.c2.update()
 }
 
@@ -115,14 +133,17 @@ func (a *APU) playSound() {
 	a.sampleCounter += SAMPLE_RATE
 	if a.sampleCounter >= CLOCK_SPEED {
 		a.sampleCounter -= CLOCK_SPEED
-		sampleL := a.c2.left
-		sampleR := a.c2.right
+		sampleL := (a.c1.left + a.c2.left) / 2
+		sampleR := (a.c1.right + a.c2.right) / 2
 		a.buffer <- [2]uint8{uint8(sampleL * uint16(a.volLeft)), uint8(sampleR * uint16(a.volRight))}
 	}
 }
 
 func (a *APU) ReadByte(addr uint16) uint8 {
 	switch uint8(addr & 0x00FF) {
+	case NR10, NR11, NR12, NR13, NR14:
+		return a.c1.readByte(uint8(addr & 0x00FF))
+
 	case NR21, NR22, NR23, NR24:
 		return a.c2.readByte(uint8(addr & 0x00FF))
 	}
@@ -131,13 +152,22 @@ func (a *APU) ReadByte(addr uint16) uint8 {
 
 func (a *APU) WriteByte(addr uint16, val uint8) {
 	switch uint8(addr & 0x00FF) {
+
+	case NR10, NR11, NR12, NR13, NR14:
+		a.c1.writeByte(uint8(addr&0x00FF), val)
+
 	case NR21, NR22, NR23, NR24:
 		a.c2.writeByte(uint8(addr&0x00FF), val)
+
 	case NR50:
 		a.volLeft = (val >> 4) & 0x7
 		a.volRight = val & 0x7
+
 	case NR51:
-		a.c2.rightOn = bits.Value(val, 1)
+		a.c1.leftOn = bits.Value(val, 4)
 		a.c2.leftOn = bits.Value(val, 5)
+
+		a.c1.rightOn = bits.Value(val, 0)
+		a.c2.rightOn = bits.Value(val, 1)
 	}
 }
