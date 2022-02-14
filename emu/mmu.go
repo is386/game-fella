@@ -143,7 +143,7 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 		if addr >= 0xFF10 && addr <= 0xFF26 {
 			m.gb.apu.WriteByte(addr, val)
 		} else if addr >= 0xFF30 && addr <= 0xFF3F {
-			//m.gb.apu.WriteWaveform(addr, val)
+			m.gb.apu.WriteByte(addr, val)
 		}
 		m.writeHRAM(uint8(addr-0xFF00), val)
 	}

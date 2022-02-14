@@ -32,8 +32,8 @@ type Channel1 struct {
 
 	leftOn  uint8
 	rightOn uint8
-	left    uint16
-	right   uint16
+	left    int
+	right   int
 	enabled bool
 }
 
@@ -42,7 +42,7 @@ func NewChannel1() *Channel1 {
 }
 
 func (c *Channel1) update() {
-	var sample uint16
+	var sample int
 	c.freqTimer--
 	if c.freqTimer <= 0 {
 		freq := int((uint16(c.freqHighBits) << 8) | uint16(c.freqLowBits))
@@ -51,7 +51,7 @@ func (c *Channel1) update() {
 		c.dutyPosition &= 7
 	}
 	if c.enabled {
-		sample = uint16(c.currVol * DUTY_TABLE[c.duty][c.dutyPosition])
+		sample = c.currVol * DUTY_TABLE[c.duty][c.dutyPosition]
 	} else {
 		sample = 0
 	}
@@ -102,7 +102,7 @@ func (c *Channel1) readByte(reg uint8) uint8 {
 		return (c.sweepPeriod << 4) | (c.sweepDir << 3) | c.sweepShift
 
 	case NR11:
-		return (c.duty << 6) | uint8(c.length)
+		return (c.duty << 6) | c.length
 
 	case NR12:
 		return (c.envVol << 4) | (c.envDir << 3) | c.envPeriod

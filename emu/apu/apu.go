@@ -39,6 +39,7 @@ var (
 type APU struct {
 	c1            *Channel1
 	c2            *Channel2
+	c3            *Channel3
 	cyc           int
 	frameSequence int
 	sampleCounter int
@@ -52,6 +53,7 @@ func NewAPU() *APU {
 	apu := &APU{cyc: 8192}
 	apu.c1 = NewChannel1()
 	apu.c2 = NewChannel2()
+	apu.c3 = NewChannel3()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
 	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, BUFFER_SIZE)
@@ -66,23 +68,18 @@ func NewAPU() *APU {
 
 func (a *APU) startSoundRoutine() {
 	ticker := time.NewTicker(FRAMETIME)
-	targetSamples := SAMPLE_RATE / 60
 
 	go func() {
 		var reading [2]uint8
-		var buffer []uint8
-
 		for range ticker.C {
 			bufLen := len(a.buffer)
+			buffer := make([]uint8, bufLen*2)
 
-			if bufLen >= targetSamples/2 {
-				newBuffer := make([]uint8, bufLen*2)
-				for i := 0; i < bufLen*2; i += 2 {
-					reading = <-a.buffer
-					newBuffer[i], newBuffer[i+1] = reading[0], reading[1]
-				}
-				buffer = newBuffer
+			for i := 0; i < bufLen*2; i += 2 {
+				reading = <-a.buffer
+				buffer[i], buffer[i+1] = reading[0], reading[1]
 			}
+
 			a.player.Write(buffer)
 		}
 	}()
@@ -104,17 +101,21 @@ func (a *APU) frameSequencer() {
 		case 0:
 			a.c1.clockLength()
 			a.c2.clockLength()
+			a.c3.clockLength()
 		case 2:
 			a.c1.clockSweep()
 			a.c1.clockLength()
 			a.c2.clockLength()
+			a.c3.clockLength()
 		case 4:
 			a.c1.clockLength()
 			a.c2.clockLength()
+			a.c3.clockLength()
 		case 6:
 			a.c1.clockSweep()
 			a.c1.clockLength()
 			a.c2.clockLength()
+			a.c3.clockLength()
 		case 7:
 			a.c1.clockEnvelope()
 			a.c2.clockEnvelope()
@@ -127,15 +128,18 @@ func (a *APU) frameSequencer() {
 func (a *APU) updateChannels() {
 	a.c1.update()
 	a.c2.update()
+	a.c3.update()
 }
 
 func (a *APU) playSound() {
 	a.sampleCounter += SAMPLE_RATE
 	if a.sampleCounter >= CLOCK_SPEED {
 		a.sampleCounter -= CLOCK_SPEED
-		sampleL := (a.c1.left + a.c2.left) / 2
-		sampleR := (a.c1.right + a.c2.right) / 2
-		a.buffer <- [2]uint8{uint8(sampleL * uint16(a.volLeft)), uint8(sampleR * uint16(a.volRight))}
+		sampleL := (a.c1.left + a.c2.left + a.c3.left) / 3
+		sampleR := (a.c1.right + a.c2.right + a.c3.right) / 3
+		l := uint8(sampleL * int(a.volLeft))
+		r := uint8(sampleR * int(a.volRight))
+		a.buffer <- [2]uint8{l, r}
 	}
 }
 
@@ -146,7 +150,15 @@ func (a *APU) ReadByte(addr uint16) uint8 {
 
 	case NR21, NR22, NR23, NR24:
 		return a.c2.readByte(uint8(addr & 0x00FF))
+
+	case NR30, NR31, NR32, NR33, NR34:
+		return a.c3.readByte(uint8(addr & 0x00FF))
 	}
+
+	if addr >= 0xFF30 && addr <= 0xFF3F {
+		return a.c3.readByte(uint8(addr & 0x00FF))
+	}
+
 	return 0x00
 }
 
@@ -159,6 +171,9 @@ func (a *APU) WriteByte(addr uint16, val uint8) {
 	case NR21, NR22, NR23, NR24:
 		a.c2.writeByte(uint8(addr&0x00FF), val)
 
+	case NR30, NR31, NR32, NR33, NR34:
+		a.c3.writeByte(uint8(addr&0x00FF), val)
+
 	case NR50:
 		a.volLeft = (val >> 4) & 0x7
 		a.volRight = val & 0x7
@@ -166,8 +181,14 @@ func (a *APU) WriteByte(addr uint16, val uint8) {
 	case NR51:
 		a.c1.leftOn = bits.Value(val, 4)
 		a.c2.leftOn = bits.Value(val, 5)
+		a.c3.leftOn = bits.Value(val, 6)
 
 		a.c1.rightOn = bits.Value(val, 0)
 		a.c2.rightOn = bits.Value(val, 1)
+		a.c3.rightOn = bits.Value(val, 2)
+	}
+
+	if addr >= 0xFF30 && addr <= 0xFF3F {
+		a.c3.writeByte(uint8(addr&0x00FF), val)
 	}
 }
