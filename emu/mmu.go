@@ -97,6 +97,11 @@ func (m *MMU) readByte(addr uint16) uint8 {
 		if addr == 0xFF00 {
 			return m.gb.buttons.readByte(addr)
 		}
+		if addr >= 0xFF10 && addr <= 0xFF26 {
+			m.gb.apu.ReadByte(addr)
+		} else if addr >= 0xFF30 && addr <= 0xFF3F {
+			m.gb.apu.ReadByte(addr)
+		}
 		return m.HRAM[addr-0xFF00]
 	}
 
@@ -135,6 +140,11 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 		}
 
 	case 0x0F00:
+		if addr >= 0xFF10 && addr <= 0xFF26 {
+			m.gb.apu.WriteByte(addr, val)
+		} else if addr >= 0xFF30 && addr <= 0xFF3F {
+			//m.gb.apu.WriteWaveform(addr, val)
+		}
 		m.writeHRAM(uint8(addr-0xFF00), val)
 	}
 }

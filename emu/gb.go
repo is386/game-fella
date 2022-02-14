@@ -116,6 +116,7 @@ func (gb *GameBoy) update() {
 		gb.cyc += cyc
 		gb.ppu.update(cyc)
 		gb.timer.update(cyc)
+		gb.apu.Update(cyc)
 		gb.cyc += gb.cpu.checkIME()
 	}
 	gb.cyc -= CPS
