@@ -30,8 +30,8 @@ var (
 	NR51 uint8 = 0x25
 	NR52 uint8 = 0x26
 
-	SAMPLE_RATE = 48000
-	BUFFER_SIZE = 2048
+	SAMPLE_RATE = 44100
+	BUFFER_SIZE = 10000
 	CLOCK_SPEED = 4194304
 	FRAMETIME   = time.Second / 60
 )
@@ -58,7 +58,7 @@ func NewAPU() *APU {
 	apu.c4 = NewChannel4()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
-	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, BUFFER_SIZE)
+	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, SAMPLE_RATE/60)
 	if err != nil {
 		panic(err)
 	}
@@ -69,19 +69,22 @@ func NewAPU() *APU {
 }
 
 func (a *APU) startSoundRoutine() {
-	ticker := time.NewTicker(FRAMETIME)
-
+	frameTime := time.Second / time.Duration(60)
+	ticker := time.NewTicker(frameTime)
+	targetSamples := SAMPLE_RATE / 60
 	go func() {
-		var reading [2]uint8
+		var reading [2]byte
+		var buffer []byte
 		for range ticker.C {
-			bufLen := len(a.buffer)
-			buffer := make([]uint8, bufLen*2)
-
-			for i := 0; i < bufLen*2; i += 2 {
-				reading = <-a.buffer
-				buffer[i], buffer[i+1] = reading[0], reading[1]
+			fbLen := len(a.buffer)
+			if fbLen >= targetSamples/2 {
+				newBuffer := make([]byte, fbLen*2)
+				for i := 0; i < fbLen*2; i += 2 {
+					reading = <-a.buffer
+					newBuffer[i], newBuffer[i+1] = reading[0], reading[1]
+				}
+				buffer = newBuffer
 			}
-
 			a.player.Write(buffer)
 		}
 	}()
@@ -143,10 +146,13 @@ func (a *APU) playSound() {
 	a.sampleCounter += SAMPLE_RATE
 	if a.sampleCounter >= CLOCK_SPEED {
 		a.sampleCounter -= CLOCK_SPEED
+
 		sampleL := (a.c1.left + a.c2.left + a.c3.left + a.c4.left) / 4
 		sampleR := (a.c1.right + a.c2.right + a.c3.right + a.c4.right) / 4
-		l := uint8(sampleL * int(a.volLeft))
-		r := uint8(sampleR * int(a.volRight))
+
+		l := uint8(sampleL*int(a.volLeft)) * 5
+		r := uint8(sampleR*int(a.volRight)) * 5
+
 		a.buffer <- [2]uint8{l, r}
 	}
 }

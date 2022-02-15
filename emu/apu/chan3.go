@@ -6,7 +6,7 @@ import (
 
 var (
 	OUTPUT_LEVELS = map[uint8]uint8{
-		0x0: 0,
+		0x0: 4,
 		0x1: 0,
 		0x2: 1,
 		0x3: 2,
@@ -46,19 +46,21 @@ func (c *Channel3) update() {
 	c.freqTimer--
 	if c.freqTimer <= 0 {
 		freq := int((uint16(c.freqHighBits) << 8) | uint16(c.freqLowBits))
-		c.freqTimer = (2048 - freq) * 4
+		c.freqTimer = (2048 - freq) * 2
 		c.wavePosition++
 		c.wavePosition &= 31
 
 		if c.enabled {
-			firstSamplePos := c.wavePosition / 2
-			waveOut := c.waveRAM[firstSamplePos]
-			if (c.wavePosition % 2) == 0 {
+			ramPos := c.wavePosition / 2
+			waveOut := c.waveRAM[ramPos]
+
+			if (c.wavePosition % 2) == 0 { // if the wavePosition is even we want the first sample (upper bits)
 				waveOut = (waveOut & 0xF0) >> 4
 			} else {
-				waveOut &= 0x0F
+				waveOut &= 0x0F // second sample (lower bits)
 			}
-			waveOut >>= OUTPUT_LEVELS[c.outputLevel]
+
+			waveOut >>= OUTPUT_LEVELS[c.outputLevel] // shift right depending on the output level vals
 			sample = int(waveOut)
 		} else {
 			sample = 0

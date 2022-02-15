@@ -35,7 +35,6 @@ func NewCartridge(filename string, rom []uint8) *Cartridge {
 		}
 		cart.name += fmt.Sprintf("%c", rom[i])
 	}
-	cart.name = strings.Title(strings.ToLower(cart.name))
 
 	mbcType := rom[0x147]
 	romBanks := int(math.Pow(2, float64(rom[0x148])+1))
