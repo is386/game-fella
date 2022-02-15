@@ -30,10 +30,11 @@ var (
 	NR51 uint8 = 0x25
 	NR52 uint8 = 0x26
 
+	FPS         = 120
 	SAMPLE_RATE = 44100
-	BUFFER_SIZE = 2048
+	BUFFER_SIZE = 4096
 	CLOCK_SPEED = 4194304
-	FRAMETIME   = time.Second / 60
+	FRAMETIME   = time.Second / time.Duration(FPS)
 )
 
 type APU struct {
@@ -58,7 +59,7 @@ func NewAPU() *APU {
 	apu.c4 = NewChannel4()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
-	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, SAMPLE_RATE/60)
+	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, SAMPLE_RATE/FPS)
 	if err != nil {
 		panic(err)
 	}
@@ -69,23 +70,20 @@ func NewAPU() *APU {
 }
 
 func (a *APU) startSoundRoutine() {
-	frameTime := time.Second / time.Duration(60)
-	ticker := time.NewTicker(frameTime)
-	targetSamples := SAMPLE_RATE / 60
+	ticker := time.NewTicker(FRAMETIME) //..targetSamples := SAMPLE_RATE / 60
 	go func() {
 		var reading [2]byte
-		var buffer []byte
 		for range ticker.C {
 			fbLen := len(a.buffer)
-			if fbLen >= targetSamples/2 {
-				newBuffer := make([]byte, fbLen*2)
-				for i := 0; i < fbLen*2; i += 2 {
-					reading = <-a.buffer
-					newBuffer[i], newBuffer[i+1] = reading[0], reading[1]
+			newBuffer := make([]byte, fbLen*2)
+			for i := 0; i < fbLen*2; i += 2 {
+				reading = <-a.buffer
+				if reading[0] == 0 && reading[1] == 0 {
+					continue
 				}
-				buffer = newBuffer
+				newBuffer[i], newBuffer[i+1] = reading[0], reading[1]
 			}
-			a.player.Write(buffer)
+			a.player.Write(newBuffer)
 		}
 	}()
 }
