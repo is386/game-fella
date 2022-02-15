@@ -1,9 +1,14 @@
 package main
 
-// TODO: Pass blarggs timing tests
-// TODO: MBC3 RTC
-// TODO: Pass MBC3 Tests
-// TODO: Sound
+// TODO:
+// - Pass blarggs timing tests
+// - MBC3 RTC
+// - Pass MBC3 Tests
+
+// BUGS:
+// - Some games don't center Nintendo logo
+// - Static and crackling issues on all channels
+// - Weird boot rom jingle when playing Zelda
 
 import (
 	"fmt"

@@ -31,7 +31,7 @@ var (
 	NR52 uint8 = 0x26
 
 	SAMPLE_RATE = 44100
-	BUFFER_SIZE = 10000
+	BUFFER_SIZE = 2048
 	CLOCK_SPEED = 4194304
 	FRAMETIME   = time.Second / 60
 )
@@ -147,11 +147,11 @@ func (a *APU) playSound() {
 	if a.sampleCounter >= CLOCK_SPEED {
 		a.sampleCounter -= CLOCK_SPEED
 
-		sampleL := (a.c1.left + a.c2.left + a.c3.left + a.c4.left) / 4
-		sampleR := (a.c1.right + a.c2.right + a.c3.right + a.c4.right) / 4
+		sampleL := a.c1.left + a.c2.left + a.c3.left + a.c4.left
+		sampleR := a.c1.right + a.c2.right + a.c3.right + a.c4.right
 
-		l := uint8(sampleL*int(a.volLeft)) * 5
-		r := uint8(sampleR*int(a.volRight)) * 5
+		l := uint8(sampleL * int(a.volLeft/2))
+		r := uint8(sampleR * int(a.volRight/2))
 
 		a.buffer <- [2]uint8{l, r}
 	}
