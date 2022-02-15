@@ -40,6 +40,7 @@ type APU struct {
 	c1            *Channel1
 	c2            *Channel2
 	c3            *Channel3
+	c4            *Channel4
 	cyc           int
 	frameSequence int
 	sampleCounter int
@@ -54,6 +55,7 @@ func NewAPU() *APU {
 	apu.c1 = NewChannel1()
 	apu.c2 = NewChannel2()
 	apu.c3 = NewChannel3()
+	apu.c4 = NewChannel4()
 	apu.buffer = make(chan [2]uint8, BUFFER_SIZE)
 
 	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, BUFFER_SIZE)
@@ -102,23 +104,28 @@ func (a *APU) frameSequencer() {
 			a.c1.clockLength()
 			a.c2.clockLength()
 			a.c3.clockLength()
+			a.c4.clockLength()
 		case 2:
 			a.c1.clockSweep()
 			a.c1.clockLength()
 			a.c2.clockLength()
 			a.c3.clockLength()
+			a.c4.clockLength()
 		case 4:
 			a.c1.clockLength()
 			a.c2.clockLength()
 			a.c3.clockLength()
+			a.c4.clockLength()
 		case 6:
 			a.c1.clockSweep()
 			a.c1.clockLength()
 			a.c2.clockLength()
 			a.c3.clockLength()
+			a.c4.clockLength()
 		case 7:
 			a.c1.clockEnvelope()
 			a.c2.clockEnvelope()
+			a.c4.clockEnvelope()
 		}
 		a.frameSequence++
 		a.frameSequence &= 7
@@ -129,14 +136,15 @@ func (a *APU) updateChannels() {
 	a.c1.update()
 	a.c2.update()
 	a.c3.update()
+	a.c4.update()
 }
 
 func (a *APU) playSound() {
 	a.sampleCounter += SAMPLE_RATE
 	if a.sampleCounter >= CLOCK_SPEED {
 		a.sampleCounter -= CLOCK_SPEED
-		sampleL := (a.c1.left + a.c2.left + a.c3.left) / 3
-		sampleR := (a.c1.right + a.c2.right + a.c3.right) / 3
+		sampleL := (a.c1.left + a.c2.left + a.c3.left + a.c4.left) / 4
+		sampleR := (a.c1.right + a.c2.right + a.c3.right + a.c4.right) / 4
 		l := uint8(sampleL * int(a.volLeft))
 		r := uint8(sampleR * int(a.volRight))
 		a.buffer <- [2]uint8{l, r}
@@ -153,6 +161,9 @@ func (a *APU) ReadByte(addr uint16) uint8 {
 
 	case NR30, NR31, NR32, NR33, NR34:
 		return a.c3.readByte(uint8(addr & 0x00FF))
+
+	case NR41, NR42, NR43, NR44:
+		return a.c4.readByte(uint8(addr & 0x00FF))
 	}
 
 	if addr >= 0xFF30 && addr <= 0xFF3F {
@@ -174,6 +185,9 @@ func (a *APU) WriteByte(addr uint16, val uint8) {
 	case NR30, NR31, NR32, NR33, NR34:
 		a.c3.writeByte(uint8(addr&0x00FF), val)
 
+	case NR41, NR42, NR43, NR44:
+		a.c4.writeByte(uint8(addr&0x00FF), val)
+
 	case NR50:
 		a.volLeft = (val >> 4) & 0x7
 		a.volRight = val & 0x7
@@ -182,10 +196,12 @@ func (a *APU) WriteByte(addr uint16, val uint8) {
 		a.c1.leftOn = bits.Value(val, 4)
 		a.c2.leftOn = bits.Value(val, 5)
 		a.c3.leftOn = bits.Value(val, 6)
+		a.c4.leftOn = bits.Value(val, 7)
 
 		a.c1.rightOn = bits.Value(val, 0)
 		a.c2.rightOn = bits.Value(val, 1)
 		a.c3.rightOn = bits.Value(val, 2)
+		a.c4.rightOn = bits.Value(val, 3)
 	}
 
 	if addr >= 0xFF30 && addr <= 0xFF3F {

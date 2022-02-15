@@ -49,27 +49,27 @@ func (c *Channel3) update() {
 		c.freqTimer = (2048 - freq) * 4
 		c.wavePosition++
 		c.wavePosition &= 31
-	}
 
-	if c.enabled {
-		firstSamplePos := c.wavePosition / 2
-		waveOut := c.waveRAM[firstSamplePos]
-		if (c.wavePosition % 2) == 0 {
-			waveOut = (waveOut & 0xF0) >> 4
+		if c.enabled {
+			firstSamplePos := c.wavePosition / 2
+			waveOut := c.waveRAM[firstSamplePos]
+			if (c.wavePosition % 2) == 0 {
+				waveOut = (waveOut & 0xF0) >> 4
+			} else {
+				waveOut &= 0x0F
+			}
+			waveOut >>= OUTPUT_LEVELS[c.outputLevel]
+			sample = int(waveOut)
 		} else {
-			waveOut &= 0x0F
+			sample = 0
 		}
-		waveOut >>= OUTPUT_LEVELS[c.outputLevel]
-		sample = int(waveOut)
-	} else {
-		sample = 0
-	}
 
-	if c.leftOn == 1 {
-		c.left = sample
-	}
-	if c.rightOn == 1 {
-		c.right = sample
+		if c.leftOn == 1 {
+			c.left = sample
+		}
+		if c.rightOn == 1 {
+			c.right = sample
+		}
 	}
 }
 

@@ -51,18 +51,19 @@ func (c *Channel2) update() {
 		c.freqTimer = (2048 - freq) * 4
 		c.dutyPosition += 1
 		c.dutyPosition &= 7
-	}
-	if c.enabled {
-		sample = c.currVol * DUTY_TABLE[c.duty][c.dutyPosition]
-	} else {
-		sample = 0
-	}
 
-	if c.leftOn == 1 {
-		c.left = sample
-	}
-	if c.rightOn == 1 {
-		c.right = sample
+		if c.enabled {
+			sample = c.currVol * DUTY_TABLE[c.duty][c.dutyPosition]
+		} else {
+			sample = 0
+		}
+
+		if c.leftOn == 1 {
+			c.left = sample
+		}
+		if c.rightOn == 1 {
+			c.right = sample
+		}
 	}
 }
 
