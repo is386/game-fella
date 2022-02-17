@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"fmt"
 	"io/ioutil"
 
 	"github.com/is386/GoBoy/emu/bits"
@@ -45,14 +44,12 @@ func NewMMU(gb *GameBoy, bootEnabled bool) *MMU {
 	if mmu.bootEnabled {
 		mmu.loadBootRom()
 	}
-	mmu.HRAM[LY] = 0x90
 	return &mmu
 }
 
 func (m *MMU) loadBootRom() {
 	boot, err := ioutil.ReadFile("roms/boot.bin")
 	if err != nil {
-		fmt.Println("roms/boot.bin not found. Skipping boot screen...")
 		return
 	}
 	for i := 0; i < len(boot); i++ {

@@ -23,6 +23,7 @@ type Cartridge struct {
 	mbc         MBC
 	name        string
 	romFileName string
+	canSave     bool
 }
 
 func NewCartridge(filename string, rom []uint8) *Cartridge {
@@ -45,16 +46,32 @@ func NewCartridge(filename string, rom []uint8) *Cartridge {
 	case 0x00:
 		cart.mbc = NewMBC0(rom)
 
-	case 0x01, 0x02, 0x03:
+	case 0x01, 0x02:
 		cart.mbc = NewMBC1(rom, uint32(romBanks), uint32(ramBanks))
 
-	case 0x0F, 0x10, 0x11, 0x12, 0x13:
+	case 0x03:
+		cart.canSave = true
+		cart.mbc = NewMBC1(rom, uint32(romBanks), uint32(ramBanks))
+
+	case 0x11, 0x12:
 		cart.mbc = NewMBC3(rom, uint32(romBanks), uint32(ramBanks))
+
+	case 0x0F, 0x10, 0x13:
+		cart.canSave = true
+		cart.mbc = NewMBC3(rom, uint32(romBanks), uint32(ramBanks))
+
+	case 0x19, 0x1A, 0x1C, 0x1D:
+		cart.mbc = NewMBC5(rom, uint32(romBanks), uint32(ramBanks))
+
+	case 0x1B, 0x1E:
+		cart.canSave = true
+		cart.mbc = NewMBC5(rom, uint32(romBanks), uint32(ramBanks))
 
 	default:
 		fmt.Printf("Unknown MBC Type: %d\n", mbcType)
 		os.Exit(0)
 	}
+
 	return cart
 }
 
@@ -79,6 +96,9 @@ func (c *Cartridge) GetRomBank() uint32 {
 }
 
 func (c *Cartridge) Save() {
+	if !c.canSave {
+		return
+	}
 	ram := c.mbc.saveData()
 	f, err := os.OpenFile(c.romFileName+".sav", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
@@ -91,6 +111,9 @@ func (c *Cartridge) Save() {
 }
 
 func (c *Cartridge) Load() {
+	if !c.canSave {
+		return
+	}
 	data, err := ioutil.ReadFile(c.romFileName + ".sav")
 	if err == nil {
 		c.mbc.loadData(data)

@@ -35,6 +35,7 @@ var (
 	BUFFER_SIZE = 4096
 	CLOCK_SPEED = 4194304
 	FRAMETIME   = time.Second / time.Duration(FPS)
+	CYCLES      = 8192
 )
 
 type APU struct {
@@ -52,7 +53,7 @@ type APU struct {
 }
 
 func NewAPU() *APU {
-	apu := &APU{cyc: 8192}
+	apu := &APU{cyc: CYCLES}
 	apu.c1 = NewChannel1()
 	apu.c2 = NewChannel2()
 	apu.c3 = NewChannel3()
@@ -99,7 +100,7 @@ func (a *APU) Update(cyc int) {
 func (a *APU) frameSequencer() {
 	a.cyc--
 	if a.cyc <= 0 {
-		a.cyc = 8192
+		a.cyc = CYCLES
 		switch a.frameSequence {
 		case 0:
 			a.c1.clockLength()

@@ -3,12 +3,12 @@ package main
 // TODO:
 // - Pass blarggs timing tests
 // - MBC3 RTC
-// - Pass MBC3 Tests
 
 // BUGS:
 // - Some games don't center Nintendo logo
 // - Static and crackling issues on all channels
-// - Weird boot rom jingle when playing Zelda
+// - Weird boot rom jingle when playing some games
+// - Pokemon Yellow intro is super crackly
 
 import (
 	"fmt"
@@ -16,15 +16,11 @@ import (
 
 	"github.com/akamensky/argparse"
 	"github.com/is386/GoBoy/emu"
+	"github.com/sqweek/dialog"
 )
 
-func parseArgs() (string, bool, bool, int) {
+func parseArgs() (bool, bool, int) {
 	parser := argparse.NewParser("GameFella", "A simple GameBoy emulator written in Go.")
-
-	romFile := parser.File("r", "rom", os.O_RDWR, 0600,
-		&argparse.Options{
-			Required: true,
-			Help:     "Path to ROM file"})
 
 	debugFlag := parser.Flag("d", "debug",
 		&argparse.Options{
@@ -53,11 +49,15 @@ func parseArgs() (string, bool, bool, int) {
 		os.Exit(0)
 	}
 
-	return romFile.Name(), *debugFlag, *noBootFlag, *scaleFlag
+	return *debugFlag, *noBootFlag, *scaleFlag
 }
 
 func main() {
-	rom, debug, noBoot, scale := parseArgs()
+	rom, err := dialog.File().Filter("GameBoy Rom File", "gb").Load()
+	if err != nil {
+		panic(err)
+	}
+	debug, noBoot, scale := parseArgs()
 	gb := emu.NewGameBoy(rom, debug, !noBoot, scale)
 	gb.Run()
 }

@@ -12,8 +12,10 @@ import (
 )
 
 var (
-	FRAMETIME = time.Second / 60
-	CPS       = 4194304 / 60
+	CLOCK_SPEED = 4194304
+	FPS         = 60
+	FRAMETIME   = time.Second / time.Duration(FPS)
+	CPS         = CLOCK_SPEED / FPS
 )
 
 type GameBoy struct {
