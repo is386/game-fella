@@ -65,3 +65,7 @@ func (s *Screen) updateCamera() {
 	cam := pixel.IM.Scaled(pixel.ZV, scale).Moved(shift)
 	s.win.SetMatrix(cam)
 }
+
+func (s *Screen) closed() bool {
+	return s.win.Closed()
+}

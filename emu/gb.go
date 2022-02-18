@@ -8,7 +8,6 @@ import (
 
 	"github.com/is386/GoBoy/emu/apu"
 	"github.com/is386/GoBoy/emu/cart"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 var (
@@ -66,13 +65,13 @@ func (gb *GameBoy) Run() {
 	frames := 0
 
 	for range ticker.C {
-		if !gb.running {
+		if !gb.running || gb.screen.closed() {
 			break
 		}
 
 		frames++
 		gb.update()
-		gb.pollSDL()
+		gb.buttons.update()
 
 		elapsed := time.Since(fpsTime)
 		if elapsed > time.Second {
@@ -87,23 +86,6 @@ func (gb *GameBoy) Run() {
 			gb.cart.Save()
 		}
 	}
-}
-
-func (gb *GameBoy) pollSDL() bool {
-	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-		switch e := event.(type) {
-		case *sdl.QuitEvent:
-			gb.close()
-		case *sdl.KeyboardEvent:
-			switch e.Type {
-			case sdl.KEYDOWN:
-				gb.buttons.keyDown(e.Keysym.Sym)
-			case sdl.KEYUP:
-				gb.buttons.keyUp(e.Keysym.Sym)
-			}
-		}
-	}
-	return true
 }
 
 func (gb *GameBoy) update() {
