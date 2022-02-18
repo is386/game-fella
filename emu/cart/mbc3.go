@@ -3,7 +3,6 @@ package cart
 type MBC3 struct {
 	ROM           []uint8
 	RAM           []uint8
-	RTC           [5]uint8
 	romBank       uint32
 	ramBank       uint32
 	totalRomBanks uint32
@@ -33,8 +32,6 @@ func (m *MBC3) readByte(addr uint16) uint8 {
 	case 0xA000, 0xB000:
 		if m.ramEnabled && m.ramBank < 0x08 {
 			return m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))]
-		} else {
-			return m.RTC[m.ramBank-0x08]
 		}
 	}
 	return 0xFF

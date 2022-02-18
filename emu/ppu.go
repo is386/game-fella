@@ -1,19 +1,30 @@
 package emu
 
 import (
+	"image/color"
+
 	"github.com/is386/GoBoy/emu/bits"
 )
 
-var (
+const (
 	WIDTH  = 160
 	HEIGHT = 144
-	COLORS = []uint32{0xfcefde, 0x958175, 0x894343, 0x000000}
+)
+
+var (
+	COLORS = []color.RGBA{
+		{0xFC, 0xEF, 0xDE, 0xFF},
+		{0x95, 0x81, 0x75, 0xFF},
+		{0x89, 0x43, 0x43, 0xFF},
+		{0x00, 0x00, 0x00, 0xFF},
+	}
 )
 
 type PPU struct {
 	gb           *GameBoy
 	cyc          int
 	prevLine     uint8
+	screenData   [WIDTH][HEIGHT]color.RGBA
 	tileColorIds [160]uint8
 	winLineCount int
 }
@@ -48,7 +59,7 @@ func (p *PPU) update(cyc int) {
 
 		// Scanline goes back to the type (Vblank Interrupt)
 		if currLine == uint8(HEIGHT) {
-			p.gb.screen.Update()
+			p.gb.screen.Update(p.screenData)
 			p.tileColorIds = [160]uint8{}
 			p.gb.mmu.writeInterrupt(INT_VBLANK)
 			p.winLineCount = 0
@@ -211,7 +222,8 @@ func (p *PPU) renderBG() {
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
-		p.gb.screen.drawPixel(int32(x), int32(scanline), color)
+		//p.gb.screen.drawPixel(float64(x), float64(scanline), color)
+		p.screenData[x][scanline] = color
 		p.tileColorIds[x] = colorId
 	}
 }
@@ -286,7 +298,8 @@ func (p *PPU) renderWindow() {
 		// Use the 2 bit color id and the background palette
 		// to get the color for the current pixel
 		color := p.getColor(colorId, BGP)
-		p.gb.screen.drawPixel(int32(x+windowX), int32(scanline), color)
+		//p.gb.screen.drawPixel(float64(x+windowX), float64(scanline), color)
+		p.screenData[x+windowX][scanline] = color
 		if (x + windowX) >= 0 {
 			p.tileColorIds[x+windowX] = colorId
 		}
@@ -417,7 +430,8 @@ func (p *PPU) renderSprites() {
 
 			// If the sprite has priority or if the tile is color 0, draw the sprite
 			if priority || p.tileColorIds[drawX] == 0 {
-				p.gb.screen.drawPixel(int32(drawX), int32(scanline), color)
+				//p.gb.screen.drawPixel(float64(drawX), float64(scanline), color)
+				p.screenData[drawX][scanline] = color
 			}
 			drawnPixelXs[drawX] = x
 		}
@@ -425,7 +439,7 @@ func (p *PPU) renderSprites() {
 	}
 }
 
-func (p *PPU) getColor(colorId uint8, paletteAddr uint8) uint32 {
+func (p *PPU) getColor(colorId uint8, paletteAddr uint8) color.RGBA {
 	// Gets the palette at the address
 	palette := p.gb.mmu.readHRAM(paletteAddr)
 	// Uses the colorId to get the color number 1-4 from the palette

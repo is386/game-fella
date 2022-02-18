@@ -35,7 +35,7 @@ func NewGameBoy(rom string, debug bool, bootEnabled bool, scale int) *GameBoy {
 	gb := &GameBoy{debug: debug, running: true}
 	gb.cpu = NewCPU(gb)
 	gb.mmu = NewMMU(gb, bootEnabled)
-	gb.screen = NewScreen(scale)
+	gb.screen = NewScreen(float64(scale))
 	gb.ppu = NewPPU(gb)
 	gb.apu = apu.NewAPU()
 	gb.timer = NewTimer(gb)

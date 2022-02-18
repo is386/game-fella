@@ -15,6 +15,7 @@ import (
 	"os"
 
 	"github.com/akamensky/argparse"
+	"github.com/faiface/pixel/pixelgl"
 	"github.com/is386/GoBoy/emu"
 	"github.com/sqweek/dialog"
 )
@@ -52,7 +53,7 @@ func parseArgs() (bool, bool, int) {
 	return *debugFlag, *noBootFlag, *scaleFlag
 }
 
-func main() {
+func run() {
 	rom, err := dialog.File().Filter("GameBoy Rom File", "gb").Load()
 	if err != nil {
 		panic(err)
@@ -60,4 +61,8 @@ func main() {
 	debug, noBoot, scale := parseArgs()
 	gb := emu.NewGameBoy(rom, debug, !noBoot, scale)
 	gb.Run()
+}
+
+func main() {
+	pixelgl.Run(run)
 }
