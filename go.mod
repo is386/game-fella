@@ -7,6 +7,7 @@ require (
 	github.com/faiface/pixel v0.10.0
 	github.com/hajimehoshi/oto v1.0.1
 	github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91
+	github.com/veandco/go-sdl2 v0.4.14
 )
 
 require (

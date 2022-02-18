@@ -1,7 +1,7 @@
 package emu
 
 import (
-	"github.com/faiface/pixel/pixelgl"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Buttons struct {
@@ -15,6 +15,22 @@ func NewButtons(gb *GameBoy) *Buttons {
 	b.rows[0] = 0x0F
 	b.rows[1] = 0x0F
 	return b
+}
+
+func (b *Buttons) update() {
+	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+		switch e := event.(type) {
+		case *sdl.QuitEvent:
+			b.gb.close()
+		case *sdl.KeyboardEvent:
+			switch e.Type {
+			case sdl.KEYDOWN:
+				b.keyDown(e.Keysym.Sym)
+			case sdl.KEYUP:
+				b.keyUp(e.Keysym.Sym)
+			}
+		}
+	}
 }
 
 func (b *Buttons) readByte(addr uint16) uint8 {
@@ -36,55 +52,36 @@ func (b *Buttons) writeByte(addr uint16, val uint8) {
 	}
 }
 
-func (b *Buttons) update() {
-	b.keyDown()
-	b.keyUp()
-}
-
-func (b *Buttons) keyDown() {
+func (b *Buttons) keyDown(key sdl.Keycode) {
 	bHit := false
 	dHit := false
 
-	if b.gb.screen.win.JustPressed(pixelgl.KeyEnter) { // Start
+	switch key {
+	case sdl.K_RETURN: // Start
 		b.rows[0] &= 0x7
 		bHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyRightShift) { // Select
+	case sdl.K_RSHIFT: // Select
 		b.rows[0] &= 0xB
 		bHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyW) { // Up
+	case sdl.K_w: // Up
 		b.rows[1] &= 0xB
 		dHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyS) { // Down
+	case sdl.K_s: // Down
 		b.rows[1] &= 0x7
 		dHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyA) { // Left
+	case sdl.K_a: // Left
 		b.rows[1] &= 0xD
 		dHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyD) { // Right
+	case sdl.K_d: // Right
 		b.rows[1] &= 0xE
 		dHit = true
-	}
-	if b.gb.screen.win.JustPressed(pixelgl.KeyJ) { // A
+	case sdl.K_j: // A
 		b.rows[0] &= 0xE
 		bHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyK) { // B
+	case sdl.K_k: // B
 		b.rows[0] &= 0xD
 		bHit = true
-	}
-
-	if b.gb.screen.win.JustPressed(pixelgl.KeyEscape) {
+	case sdl.K_ESCAPE:
 		b.gb.close()
 	}
 
@@ -93,40 +90,25 @@ func (b *Buttons) keyDown() {
 	}
 }
 
-func (b *Buttons) keyUp() {
-	if b.gb.screen.win.JustReleased(pixelgl.KeyEnter) { // Start
+func (b *Buttons) keyUp(key sdl.Keycode) {
+	switch key {
+	case sdl.K_RETURN: // Start
 		b.rows[0] |= 0x8
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyRightShift) { // Select
+	case sdl.K_RSHIFT: // Select
 		b.rows[0] |= 0x4
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyW) { // Up
+	case sdl.K_w: // Up
 		b.rows[1] |= 0x4
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyS) { // Down
+	case sdl.K_s: // Down
 		b.rows[1] |= 0x8
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyA) { // Left
+	case sdl.K_a: // Left
 		b.rows[1] |= 0x2
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyD) { // Right
+	case sdl.K_d: // Right
 		b.rows[1] |= 0x1
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyJ) { // A
+	case sdl.K_j: // A
 		b.rows[0] |= 0x1
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyK) { // B
+	case sdl.K_k: // B
 		b.rows[0] |= 0x2
-	}
-
-	if b.gb.screen.win.JustReleased(pixelgl.KeyEscape) {
+	case sdl.K_ESCAPE:
 		b.gb.close()
 	}
 }

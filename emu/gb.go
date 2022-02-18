@@ -34,7 +34,7 @@ func NewGameBoy(rom string, bootPath string, scale int, debug bool) *GameBoy {
 	gb := &GameBoy{debug: debug, running: true}
 	gb.cpu = NewCPU(gb)
 	gb.mmu = NewMMU(gb)
-	gb.screen = NewScreen(float64(scale))
+	gb.screen = NewScreen(scale)
 	gb.ppu = NewPPU(gb)
 	gb.apu = apu.NewAPU()
 	gb.timer = NewTimer(gb)
@@ -76,7 +76,7 @@ func (gb *GameBoy) Run() {
 	frames := 0
 
 	for range ticker.C {
-		if !gb.running || gb.screen.closed() {
+		if !gb.running {
 			break
 		}
 

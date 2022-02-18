@@ -1,71 +1,51 @@
 package emu
 
 import (
-	"image/color"
-	"math"
-
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Screen struct {
-	win   *pixelgl.Window
-	pic   *pixel.PictureData
-	scale float64
+	scale int
+	win   *sdl.Window
+	sur   *sdl.Surface
 }
 
-func NewScreen(scale float64) *Screen {
-	s := &Screen{scale: scale}
-
-	cfg := pixelgl.WindowConfig{
-		Bounds: pixel.R(0, 0, float64(WIDTH)*scale, float64(HEIGHT)*scale),
-		VSync:  true,
+func NewScreen(scale int) *Screen {
+	if scale < 1 {
+		scale = 1
 	}
 
-	win, err := pixelgl.NewWindow(cfg)
+	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
+		panic(err)
+	}
+
+	win, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+		int32(WIDTH*scale), int32(HEIGHT*scale), sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		panic(err)
 	}
 
-	pic := &pixel.PictureData{
-		Pix:    make([]color.RGBA, WIDTH*HEIGHT),
-		Stride: WIDTH,
-		Rect:   pixel.R(0, 0, WIDTH, HEIGHT),
+	sur, err := win.GetSurface()
+	if err != nil {
+		panic(err)
 	}
 
-	s.win = win
-	s.pic = pic
-	s.win.Clear(COLORS[0])
-	return s
+	sur.FillRect(nil, COLORS[0])
+	win.UpdateSurface()
+
+	s := Screen{scale: scale, win: win, sur: sur}
+	return &s
 }
 
 func (s *Screen) Destroy() {
 	s.win.Destroy()
+	sdl.Quit()
 }
 
-func (s *Screen) Update(screenData [WIDTH][HEIGHT]color.RGBA) {
-	for y := 0; y < HEIGHT; y++ {
-		for x := 0; x < WIDTH; x++ {
-			s.pic.Pix[(HEIGHT-1-y)*WIDTH+x] = screenData[x][y]
-		}
-	}
-
-	spr := pixel.NewSprite(pixel.Picture(s.pic), pixel.R(0, 0, WIDTH, HEIGHT))
-	spr.Draw(s.win, pixel.IM)
-	s.updateCamera()
-	s.win.Update()
+func (s *Screen) Update() {
+	s.win.UpdateSurface()
 }
 
-func (s *Screen) updateCamera() {
-	xScale := s.win.Bounds().W() / 160
-	yScale := s.win.Bounds().H() / 144
-	scale := math.Min(yScale, xScale)
-
-	shift := s.win.Bounds().Size().Scaled(0.5).Sub(pixel.ZV)
-	cam := pixel.IM.Scaled(pixel.ZV, scale).Moved(shift)
-	s.win.SetMatrix(cam)
-}
-
-func (s *Screen) closed() bool {
-	return s.win.Closed()
+func (s *Screen) drawPixel(x int32, y int32, color uint32) {
+	s.sur.FillRect(&sdl.Rect{X: x * int32(s.scale), Y: y * int32(s.scale), W: int32(s.scale), H: int32(s.scale)}, color)
 }
