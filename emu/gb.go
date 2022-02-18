@@ -47,13 +47,11 @@ func NewGameBoy(rom string, bootPath string, scale int, debug bool) *GameBoy {
 func (gb *GameBoy) loadBootRom(filename string) {
 	boot, err := ioutil.ReadFile(filename)
 	if err != nil {
+		fmt.Println("Boot ROM not valid. Skipping boot screen...")
 		return
 	}
-	for i := 0; i < len(boot); i++ {
-		gb.mmu.bootROM[i] = boot[i]
-	}
-	gb.mmu.bootEnabled = true
-	gb.cpu.pc = 0x00
+	gb.mmu.loadBootRom(boot)
+	gb.cpu.resetPC()
 }
 
 func (gb *GameBoy) loadRom(filename string) {
@@ -84,7 +82,6 @@ func (gb *GameBoy) Run() {
 
 		frames++
 		gb.update()
-		gb.buttons.update()
 
 		elapsed := time.Since(fpsTime)
 		if elapsed > time.Second {
@@ -116,6 +113,7 @@ func (gb *GameBoy) update() {
 		gb.apu.Update(cyc)
 		gb.cyc += gb.cpu.checkIME()
 	}
+	gb.buttons.update()
 	gb.cyc -= CPS
 }
 

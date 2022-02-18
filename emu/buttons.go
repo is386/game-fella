@@ -45,46 +45,46 @@ func (b *Buttons) keyDown() {
 	bHit := false
 	dHit := false
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyEnter) { // Start
+	if b.gb.screen.win.JustPressed(pixelgl.KeyEnter) { // Start
 		b.rows[0] &= 0x7
 		bHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyRightShift) { // Select
+	if b.gb.screen.win.JustPressed(pixelgl.KeyRightShift) { // Select
 		b.rows[0] &= 0xB
 		bHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyW) { // Up
+	if b.gb.screen.win.JustPressed(pixelgl.KeyW) { // Up
 		b.rows[1] &= 0xB
 		dHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyS) { // Down
+	if b.gb.screen.win.JustPressed(pixelgl.KeyS) { // Down
 		b.rows[1] &= 0x7
 		dHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyA) { // Left
+	if b.gb.screen.win.JustPressed(pixelgl.KeyA) { // Left
 		b.rows[1] &= 0xD
 		dHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyD) { // Right
+	if b.gb.screen.win.JustPressed(pixelgl.KeyD) { // Right
 		b.rows[1] &= 0xE
 		dHit = true
 	}
-	if b.gb.screen.win.Pressed(pixelgl.KeyJ) { // A
+	if b.gb.screen.win.JustPressed(pixelgl.KeyJ) { // A
 		b.rows[0] &= 0xE
 		bHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyK) { // B
+	if b.gb.screen.win.JustPressed(pixelgl.KeyK) { // B
 		b.rows[0] &= 0xD
 		bHit = true
 	}
 
-	if b.gb.screen.win.Pressed(pixelgl.KeyEscape) {
+	if b.gb.screen.win.JustPressed(pixelgl.KeyEscape) {
 		b.gb.close()
 	}
 

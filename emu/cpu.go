@@ -35,6 +35,10 @@ func NewCPU(gb *GameBoy) *CPU {
 	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
 }
 
+func (c *CPU) resetPC() {
+	c.pc = 0x0
+}
+
 func (c *CPU) readByte(addr uint16) uint8 {
 	return c.gb.mmu.readByte(addr)
 }

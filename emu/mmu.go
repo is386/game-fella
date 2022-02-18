@@ -28,7 +28,7 @@ var (
 
 type MMU struct {
 	gb          *GameBoy
-	bootROM     [0x00FF - 0x0000 + 1]uint8
+	bootROM     []uint8
 	VRAM        [0x9FFF - 0x8000 + 1]uint8
 	WRAM        [0xDFFF - 0xC000 + 1]uint8
 	OAM         [0xFE9F - 0xFE00 + 1]uint8
@@ -40,6 +40,11 @@ type MMU struct {
 func NewMMU(gb *GameBoy) *MMU {
 	mmu := MMU{gb: gb, startup: true}
 	return &mmu
+}
+
+func (m *MMU) loadBootRom(rom []uint8) {
+	m.bootROM = rom
+	m.bootEnabled = true
 }
 
 func (m *MMU) readByte(addr uint16) uint8 {
