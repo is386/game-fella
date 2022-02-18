@@ -1,8 +1,6 @@
 package emu
 
 import (
-	"io/ioutil"
-
 	"github.com/is386/GoBoy/emu/bits"
 )
 
@@ -39,23 +37,9 @@ type MMU struct {
 	startup     bool
 }
 
-func NewMMU(gb *GameBoy, bootEnabled bool) *MMU {
-	mmu := MMU{gb: gb, bootEnabled: bootEnabled, startup: true}
-	if mmu.bootEnabled {
-		mmu.loadBootRom()
-	}
+func NewMMU(gb *GameBoy) *MMU {
+	mmu := MMU{gb: gb, startup: true}
 	return &mmu
-}
-
-func (m *MMU) loadBootRom() {
-	boot, err := ioutil.ReadFile("roms/boot.bin")
-	if err != nil {
-		return
-	}
-	for i := 0; i < len(boot); i++ {
-		m.bootROM[i] = boot[i]
-	}
-	m.gb.cpu.pc = 0x00
 }
 
 func (m *MMU) readByte(addr uint16) uint8 {

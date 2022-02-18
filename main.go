@@ -20,8 +20,22 @@ import (
 	"github.com/sqweek/dialog"
 )
 
-func parseArgs() (bool, bool, int) {
+func parseArgs() (string, int, bool) {
 	parser := argparse.NewParser("GameFella", "A simple GameBoy emulator written in Go.")
+
+	bootFlag := parser.String("b", "boot",
+		&argparse.Options{
+			Required: false,
+			Help:     "Path to boot ROM",
+			Default:  "",
+		})
+
+	scaleFlag := parser.Int("s", "scale",
+		&argparse.Options{
+			Required: false,
+			Help:     "Scale of the screen",
+			Default:  3,
+		})
 
 	debugFlag := parser.Flag("d", "debug",
 		&argparse.Options{
@@ -30,36 +44,22 @@ func parseArgs() (bool, bool, int) {
 			Default:  false,
 		})
 
-	noBootFlag := parser.Flag("n", "noboot",
-		&argparse.Options{
-			Required: false,
-			Help:     "Turns off boot screen",
-			Default:  false,
-		})
-
-	scaleFlag := parser.Int("s", "--scale",
-		&argparse.Options{
-			Required: false,
-			Help:     "Scale of the screen",
-			Default:  3,
-		})
-
 	err := parser.Parse(os.Args)
 	if err != nil {
 		fmt.Print(parser.Usage(err))
 		os.Exit(0)
 	}
 
-	return *debugFlag, *noBootFlag, *scaleFlag
+	return *bootFlag, *scaleFlag, *debugFlag
 }
 
 func run() {
+	bootPath, scale, debug := parseArgs()
 	rom, err := dialog.File().Filter("GameBoy Rom File", "gb").Load()
 	if err != nil {
 		panic(err)
 	}
-	debug, noBoot, scale := parseArgs()
-	gb := emu.NewGameBoy(rom, debug, !noBoot, scale)
+	gb := emu.NewGameBoy(rom, bootPath, scale, debug)
 	gb.Run()
 }
 

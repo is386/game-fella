@@ -30,17 +30,30 @@ type GameBoy struct {
 	running, debug bool
 }
 
-func NewGameBoy(rom string, debug bool, bootEnabled bool, scale int) *GameBoy {
+func NewGameBoy(rom string, bootPath string, scale int, debug bool) *GameBoy {
 	gb := &GameBoy{debug: debug, running: true}
 	gb.cpu = NewCPU(gb)
-	gb.mmu = NewMMU(gb, bootEnabled)
+	gb.mmu = NewMMU(gb)
 	gb.screen = NewScreen(float64(scale))
 	gb.ppu = NewPPU(gb)
 	gb.apu = apu.NewAPU()
 	gb.timer = NewTimer(gb)
 	gb.buttons = NewButtons(gb)
+	gb.loadBootRom(bootPath)
 	gb.loadRom(rom)
 	return gb
+}
+
+func (gb *GameBoy) loadBootRom(filename string) {
+	boot, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return
+	}
+	for i := 0; i < len(boot); i++ {
+		gb.mmu.bootROM[i] = boot[i]
+	}
+	gb.mmu.bootEnabled = true
+	gb.cpu.pc = 0x00
 }
 
 func (gb *GameBoy) loadRom(filename string) {
