@@ -8,7 +8,7 @@ type Flags struct {
 }
 
 func NewFlags() *Flags {
-	return &Flags{Z: 1, N: 0, H: 1, C: 1}
+	return &Flags{Z: 1, N: 0, H: 0, C: 0}
 }
 
 func (f *Flags) getF() uint8 {

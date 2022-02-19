@@ -24,6 +24,16 @@ var (
 	OBP1   uint8 = 0x49
 	WY     uint8 = 0x4A
 	WX     uint8 = 0x4B
+	VBK    uint8 = 0x4F
+	KEY1   uint8 = 0x4D
+	HDMA1  uint8 = 0x51
+	HDMA2  uint8 = 0x52
+	HDMA3  uint8 = 0x53
+	HDMA4  uint8 = 0x54
+	HDMA5  uint8 = 0x55
+	RP     uint8 = 0x56
+	OPRI   uint8 = 0x6C
+	SVBK   uint8 = 0x70
 )
 
 type MMU struct {
@@ -38,8 +48,64 @@ type MMU struct {
 }
 
 func NewMMU(gb *GameBoy) *MMU {
-	mmu := MMU{gb: gb, startup: true}
-	return &mmu
+	m := MMU{gb: gb, startup: true}
+	return &m
+}
+
+func (m *MMU) initHRAM() {
+	m.gb.mmu.writeByte(0xFF00, 0xCF)
+	m.gb.mmu.writeByte(0xFF01, 0x00)
+	m.gb.mmu.writeByte(0xFF02, 0x7E)
+	m.gb.mmu.writeByte(0xFF04, 0xAB)
+	m.gb.mmu.writeByte(0xFF05, 0x00)
+	m.gb.mmu.writeByte(0xFF06, 0x00)
+	m.gb.mmu.writeByte(0xFF07, 0xF8)
+	m.gb.mmu.writeByte(0xFF0F, 0xE1)
+	m.gb.mmu.writeByte(0xFF10, 0x80)
+	m.gb.mmu.writeByte(0xFF11, 0xBF)
+	m.gb.mmu.writeByte(0xFF12, 0xF3)
+	m.gb.mmu.writeByte(0xFF13, 0xFF)
+	m.gb.mmu.writeByte(0xFF14, 0xBF)
+	m.gb.mmu.writeByte(0xFF16, 0x3F)
+	m.gb.mmu.writeByte(0xFF17, 0x00)
+	m.gb.mmu.writeByte(0xFF18, 0xFF)
+	m.gb.mmu.writeByte(0xFF19, 0xBF)
+	m.gb.mmu.writeByte(0xFF1A, 0x7F)
+	m.gb.mmu.writeByte(0xFF1B, 0xFF)
+	m.gb.mmu.writeByte(0xFF1C, 0x9F)
+	m.gb.mmu.writeByte(0xFF1D, 0xFF)
+	m.gb.mmu.writeByte(0xFF1E, 0xBF)
+	m.gb.mmu.writeByte(0xFF20, 0xFF)
+	m.gb.mmu.writeByte(0xFF21, 0x00)
+	m.gb.mmu.writeByte(0xFF22, 0x00)
+	m.gb.mmu.writeByte(0xFF23, 0xBF)
+	m.gb.mmu.writeByte(0xFF24, 0x77)
+	m.gb.mmu.writeByte(0xFF25, 0xF3)
+	m.gb.mmu.writeByte(0xFF26, 0xF1)
+	m.gb.mmu.writeByte(0xFF40, 0x91)
+	m.gb.mmu.writeByte(0xFF41, 0x85)
+	m.gb.mmu.writeByte(0xFF42, 0x00)
+	m.gb.mmu.writeByte(0xFF43, 0x00)
+	m.gb.mmu.writeByte(0xFF44, 0x00)
+	m.gb.mmu.writeByte(0xFF45, 0x00)
+	m.gb.mmu.writeByte(0xFF46, 0xFF)
+	m.gb.mmu.writeByte(0xFF47, 0xFC)
+	m.gb.mmu.writeByte(0xFF4A, 0x00)
+	m.gb.mmu.writeByte(0xFF4B, 0x00)
+	m.gb.mmu.writeByte(0xFF4D, 0xFF)
+	m.gb.mmu.writeByte(0xFF4F, 0xFF)
+	m.gb.mmu.writeByte(0xFF51, 0xFF)
+	m.gb.mmu.writeByte(0xFF52, 0xFF)
+	m.gb.mmu.writeByte(0xFF53, 0xFF)
+	m.gb.mmu.writeByte(0xFF54, 0xFF)
+	m.gb.mmu.writeByte(0xFF55, 0xFF)
+	m.gb.mmu.writeByte(0xFF56, 0xFF)
+	m.gb.mmu.writeByte(0xFF68, 0xFF)
+	m.gb.mmu.writeByte(0xFF69, 0xFF)
+	m.gb.mmu.writeByte(0xFF6A, 0xFF)
+	m.gb.mmu.writeByte(0xFF6B, 0xFF)
+	m.gb.mmu.writeByte(0xFF70, 0xFF)
+	m.gb.mmu.writeByte(0xFFFF, 0x00)
 }
 
 func (m *MMU) loadBootRom(rom []uint8) {

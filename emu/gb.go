@@ -26,6 +26,7 @@ type GameBoy struct {
 	timer          *Timer
 	buttons        *Buttons
 	cart           *cart.Cartridge
+	cgbMode        bool
 	cyc            int
 	running, debug bool
 }
@@ -66,6 +67,11 @@ func (gb *GameBoy) loadRom(filename string) {
 	}
 	gb.mmu.startup = false
 	gb.cart.Load()
+	gb.cgbMode = gb.cart.IsCGBMode()
+	if gb.cgbMode {
+		gb.cpu.reg.A = 0x11
+	}
+	gb.mmu.initHRAM()
 	gb.setTitle(60)
 }
 

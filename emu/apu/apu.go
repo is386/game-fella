@@ -1,6 +1,8 @@
 package apu
 
 import (
+	"time"
+
 	"github.com/hajimehoshi/oto"
 	"github.com/is386/GoBoy/emu/bits"
 )
@@ -28,8 +30,11 @@ var (
 	NR51 uint8 = 0x25
 	NR52 uint8 = 0x26
 
-	SAMPLE_RATE = 48000
+	FPS         = 120
+	SAMPLE_RATE = 44100
+	SAMPLES     = 4096
 	CLOCK_SPEED = 4194304
+	FRAMETIME   = time.Second / time.Duration(FPS)
 	CYCLES      = 8192
 )
 
@@ -42,6 +47,7 @@ type APU struct {
 	frameSequence int
 	sampleCounter int
 	player        *oto.Player
+	buffer        chan [2]uint8
 	volLeft       uint8
 	volRight      uint8
 }
@@ -52,14 +58,35 @@ func NewAPU() *APU {
 	apu.c2 = NewChannel2()
 	apu.c3 = NewChannel3()
 	apu.c4 = NewChannel4()
+	apu.buffer = make(chan [2]uint8, SAMPLES)
 
-	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, SAMPLE_RATE/120)
+	ctx, err := oto.NewContext(SAMPLE_RATE, 2, 1, SAMPLE_RATE/FPS)
 	if err != nil {
 		panic(err)
 	}
-	apu.player = ctx.NewPlayer()
 
+	apu.player = ctx.NewPlayer()
+	apu.startSoundRoutine()
 	return apu
+}
+
+func (a *APU) startSoundRoutine() {
+	ticker := time.NewTicker(FRAMETIME)
+	go func() {
+		var reading [2]byte
+		for range ticker.C {
+			fbLen := len(a.buffer)
+			buffer := make([]byte, fbLen*2)
+			for i := 0; i < fbLen*2; i += 2 {
+				reading = <-a.buffer
+				if reading[0] == 0 && reading[1] == 0 {
+					continue
+				}
+				buffer[i], buffer[i+1] = reading[0], reading[1]
+			}
+			a.player.Write(buffer)
+		}
+	}()
 }
 
 func (a *APU) Update(cyc int) {
@@ -124,7 +151,8 @@ func (a *APU) playSound() {
 
 		l := uint8(sampleL * int(a.volLeft/2))
 		r := uint8(sampleR * int(a.volRight/2))
-		a.player.Write([]uint8{l, r})
+
+		a.buffer <- [2]uint8{l, r}
 	}
 }
 

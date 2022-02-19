@@ -55,7 +55,7 @@ func (m *MBC3) writeROM(addr uint16, val uint8) {
 		}
 
 	case 0x4000, 0x5000:
-		m.ramBank = uint32(val)
+		m.ramBank = uint32(val) % m.totalRamBanks
 
 	case 0x6000, 0x7000:
 	}
