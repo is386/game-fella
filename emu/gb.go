@@ -106,7 +106,7 @@ func (gb *GameBoy) Run() {
 
 func (gb *GameBoy) update() {
 	for gb.cyc < CPS {
-		cyc := 4
+		cyc := 1
 		if !gb.cpu.halted {
 			if gb.debug {
 				gb.cpu.print()
@@ -117,7 +117,7 @@ func (gb *GameBoy) update() {
 		gb.ppu.update(cyc)
 		gb.timer.update(cyc)
 		gb.apu.Update(cyc)
-		gb.cyc += gb.cpu.checkIME()
+		gb.cpu.checkIME()
 	}
 	gb.buttons.update()
 	gb.cyc -= CPS

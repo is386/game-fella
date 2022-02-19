@@ -32,7 +32,7 @@ var (
 
 	FPS         = 120
 	SAMPLE_RATE = 44100
-	SAMPLES     = 4096
+	SAMPLES     = 8192
 	CLOCK_SPEED = 4194304
 	FRAMETIME   = time.Second / time.Duration(FPS)
 	CYCLES      = 8192

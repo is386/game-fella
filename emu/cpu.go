@@ -96,15 +96,15 @@ func (c *CPU) print() {
 	fmt.Scanln()
 }
 
-func (c *CPU) checkIME() int {
+func (c *CPU) checkIME() {
 	if c.imePending {
 		c.ime = true
 		c.imePending = false
-		return 0
+		return
 	}
 
 	if !c.ime && !c.halted {
-		return 0
+		return
 	}
 
 	intF := c.readByte(0xFF0F) | 0xE0
@@ -113,11 +113,9 @@ func (c *CPU) checkIME() int {
 		for i := 0; i < 5; i++ {
 			if (((intF >> i) & 1) == 1) && (((intE >> i) & 1) == 1) {
 				c.doInterrupt(i)
-				return 20
 			}
 		}
 	}
-	return 0
 }
 
 func (c *CPU) doInterrupt(i int) {

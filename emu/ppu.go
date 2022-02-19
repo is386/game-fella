@@ -12,8 +12,9 @@ var (
 
 type PPU struct {
 	gb           *GameBoy
+	mode         uint8
+	intActive    bool
 	cyc          int
-	prevLine     uint8
 	tileColorIds [160]uint8
 	winLineCount int
 }
@@ -76,48 +77,61 @@ func (p *PPU) setLCDStatus() {
 
 	// STAT contains the LCD's current mode
 	currMode := stat & 0x3
-	mode := uint8(0)
+
+	oam := p.isOAMInterrupt(stat)
+	hblank := p.isHblankInterrupt(stat)
+	vblank := p.isVblankInterrupt(stat)
+	lycStat := p.isLYCInterrupt(stat)
 	reqInt := false
+
+	if oam && p.mode == 2 {
+		reqInt = true
+	}
+	if hblank && p.mode == 0 {
+		reqInt = true
+	}
+	if vblank && p.mode == 1 {
+		reqInt = true
+	}
+	if lycStat {
+		if currLine == p.gb.mmu.readHRAM(LYC) {
+			stat = bits.Set(stat, 2)
+			reqInt = true
+		}
+	}
+
+	// Request an interrupt if necessary
+	if reqInt && !p.intActive {
+		p.gb.mmu.writeInterrupt(INT_LCD)
+		p.gb.mmu.writeHRAM(STAT, stat)
+	}
+
+	p.intActive = reqInt
 
 	// Mode 0: pad time when we don't draw to the whole line
 	// Mode 1: pad time for the 10 additional invisible rows
 	// Mode 2: fetch asset
 	// Mode 3: render
 	if currLine >= 144 {
-		mode = 1
+		p.mode = 1
 		stat = bits.Set(stat, 0)
 		stat = bits.Reset(stat, 1)
-		reqInt = p.isVblankInterrupt(stat)
 	} else if p.cyc >= 376 {
-		mode = 2
+		p.mode = 2
 		stat = bits.Reset(stat, 0)
 		stat = bits.Set(stat, 1)
-		reqInt = p.isOAMInterrupt(stat)
 	} else if p.cyc >= 204 {
-		mode = 3
+		p.mode = 3
 		stat = bits.Set(stat, 0)
 		stat = bits.Set(stat, 1)
-		if mode != currMode {
+		if p.mode != currMode {
 			p.drawScanline()
 		}
 	} else {
-		mode = 0
+		p.mode = 0
 		stat = bits.Reset(stat, 0)
 		stat = bits.Reset(stat, 1)
-		reqInt = p.isHblankInterrupt(stat)
 	}
-
-	// Request an interrupt if necessary
-	if reqInt {
-		p.gb.mmu.writeInterrupt(INT_LCD)
-	} else if p.isLYCInterrupt(stat) && currLine != p.prevLine {
-		p.prevLine = currLine
-		if currLine == p.gb.mmu.readHRAM(LYC) {
-			stat = bits.Set(stat, 2)
-			p.gb.mmu.writeInterrupt(INT_LCD)
-		}
-	}
-
 	p.gb.mmu.writeHRAM(STAT, stat)
 }
 
