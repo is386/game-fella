@@ -4,12 +4,6 @@ package main
 // - Pass blarggs timing tests
 // - MBC3 RTC
 
-// BUGS:
-// - Some games don't center Nintendo logo
-// - Static and crackling issues on all channels
-// - Weird boot rom jingle when playing some games
-// - Pokemon Yellow intro is super crackly
-
 import (
 	"fmt"
 	"os"
@@ -54,7 +48,7 @@ func parseArgs() (string, int, bool) {
 
 func main() {
 	bootPath, scale, debug := parseArgs()
-	rom, err := dialog.File().Filter("GameBoy Rom File", "gb", "gbc").Load()
+	rom, err := dialog.File().Filter("GB/GBC Rom File", "gb", "gbc").Load()
 	if err != nil {
 		panic(err)
 	}
