@@ -25,12 +25,12 @@ var (
 	WY     uint8 = 0x4A
 	WX     uint8 = 0x4B
 	VBK    uint8 = 0x4F
+	KEY1   uint8 = 0x4D
 	HDMA1  uint8 = 0x51
 	HDMA2  uint8 = 0x52
 	HDMA3  uint8 = 0x53
 	HDMA4  uint8 = 0x54
 	HDMA5  uint8 = 0x55
-	RP     uint8 = 0x56
 	BGPI   uint8 = 0x68
 	BGPD   uint8 = 0x69
 	OBPI   uint8 = 0x6A
@@ -260,9 +260,9 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 			m.newDMATransfer(val)
 		}
 
-	case RP:
+	case KEY1:
 		if m.gb.isCGB {
-			// Infrared Port
+			// Prepare Speed Switch
 		}
 
 	case BGPI:
@@ -307,6 +307,21 @@ func (m *MMU) readHRAM(reg uint8) uint8 {
 
 	case reg == VBK && m.gb.isCGB:
 		return m.HRAM[VBK] & 0xFE
+
+	case reg == KEY1 && m.gb.isCGB:
+		return 0
+
+	case reg == BGPI:
+		return m.bgCRAM.readAddr()
+
+	case reg == BGPD:
+		return m.bgCRAM.readCurrentCRAM()
+
+	case reg == OBPI:
+		return m.spriteCRAM.readAddr()
+
+	case reg == OBPD:
+		return m.spriteCRAM.readCurrentCRAM()
 
 	default:
 		return m.HRAM[reg]

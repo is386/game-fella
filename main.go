@@ -3,12 +3,15 @@ package main
 // TODO:
 // - Pass blarggs timing tests
 // - MBC3 RTC
-// - CGB OPRI register
 // - CGB HDMA
 // - CGB Double Speed
+// - CGB colors for DMG games
 
-// BUGS:
-// - Fix flipping in window rendering
+// CGB-ONLY BUGS:
+// - Pokemon Yellow all black in CGB mode
+// - Pokemon Gold/Silver crashes when you press start
+// - Pokemon Gold/Silver have flashing tiles
+// - Boot screen is very messed up
 
 import (
 	"fmt"

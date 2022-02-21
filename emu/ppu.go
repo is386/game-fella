@@ -192,7 +192,7 @@ func (p *PPU) renderBG() {
 		tileY := scrolledY / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := (7 - scrolledX) % 8
+		pixelX := 7 - (scrolledX % 8)
 		pixelY := scrolledY % 8
 
 		// Gets the address of the tileId in the tile map
@@ -221,7 +221,7 @@ func (p *PPU) renderBG() {
 			priority = p.bgHasPriority(tileAttrs)
 
 			if p.isBGFlipY(tileAttrs) {
-				pixelY = (7 - scrolledY) % 8
+				pixelY = 7 - (scrolledY % 8)
 			}
 
 			if p.isBGFlipX(tileAttrs) {
@@ -301,7 +301,7 @@ func (p *PPU) renderWindow() {
 		tileY := p.winLineCount / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := x % 8
+		pixelX := 7 - (x % 8)
 		pixelY := p.winLineCount % 8
 
 		// Gets the address of the tileId in the tile map
@@ -324,16 +324,17 @@ func (p *PPU) renderWindow() {
 		paletteAddr := BGP
 
 		// Tile attributes used by CGB
+		var priority uint8
 		if p.gb.isCGB {
 			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr - 0x6000)
-			// priority = p.bgHasPriority(tileAttrs)
+			priority = p.bgHasPriority(tileAttrs)
 
 			if p.isBGFlipY(tileAttrs) {
-				pixelY = (7 - p.winLineCount) % 8
+				pixelY = 7 - (p.winLineCount % 8)
 			}
 
 			if p.isBGFlipX(tileAttrs) {
-				pixelX = (7 - x) % 8
+				pixelX = x % 8
 			}
 
 			bank := p.getBGVRAMBank(tileAttrs)
@@ -354,9 +355,9 @@ func (p *PPU) renderWindow() {
 		// Each bit in each byte is one pixel. The nth bit in each
 		// tile byte combines to make a 2 bit color id. The current
 		// pixel is the bit we want the color for
-		colorId := (bits.Value(tileByte2, uint8(7-pixelX)))
+		colorId := (bits.Value(tileByte2, uint8(pixelX)))
 		colorId <<= 1
-		colorId |= bits.Value(tileByte1, uint8(7-pixelX))
+		colorId |= bits.Value(tileByte1, uint8(pixelX))
 
 		var color uint32
 		if p.gb.isCGB {
@@ -367,6 +368,10 @@ func (p *PPU) renderWindow() {
 		p.gb.screen.drawPixel(int32(x+windowX), int32(scanline), color)
 		if (x + windowX) >= 0 {
 			p.tileColorIds[x+windowX] = colorId
+		}
+
+		if p.isBGEnabled() && p.gb.isCGB {
+			p.bgPriority[x+windowX][scanline] = priority
 		}
 	}
 	p.winLineCount += 1
@@ -464,7 +469,7 @@ func (p *PPU) renderSprites() {
 			// If the pixel at drawX is not 0 (it has been drawn before)
 			// and if the previous x value for this pixel has lower, it
 			// has priority, so skip the current pixel
-			if drawnPixelXs[drawX] != 0 && drawnPixelXs[drawX] <= x {
+			if drawnPixelXs[drawX] != 0 && (drawnPixelXs[drawX] <= x || p.gb.isCGB) {
 				continue
 			}
 
@@ -506,7 +511,7 @@ func (p *PPU) renderSprites() {
 			}
 
 			// If the sprite has priority or if the tile is color 0, draw the sprite
-			if (priority && p.bgPriority[drawX][scanline] == 0) || (p.tileColorIds[drawX] == 0) {
+			if (priority && p.bgPriority[drawX][scanline] == 0) || p.tileColorIds[drawX] == 0 {
 				p.gb.screen.drawPixel(int32(drawX), int32(scanline), color)
 				drawnPixelXs[drawX] = x
 			}

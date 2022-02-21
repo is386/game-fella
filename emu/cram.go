@@ -19,6 +19,14 @@ func (c *CRAM) writeCRAM(val uint8) {
 	c.cramAddr &= 0x3F
 }
 
+func (c *CRAM) readAddr() uint8 {
+	return c.cramAddr
+}
+
+func (c *CRAM) readCurrentCRAM() uint8 {
+	return c.CRAM[c.cramAddr]
+}
+
 func (c *CRAM) readCRAM(addr uint8) uint8 {
 	return c.CRAM[addr]
 }

@@ -61,12 +61,15 @@ func (gb *GameBoy) loadRom(filename string) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
+
 	gb.cart = cart.NewCartridge(filename, rom)
 	for i := 0; i < len(rom); i++ {
 		gb.mmu.writeByte(uint16(i), rom[i])
 	}
+
 	gb.mmu.startup = false
 	gb.cart.Load()
+
 	gb.isCGB = gb.cart.IsCGBMode()
 	if gb.isCGB {
 		gb.cpu.reg.A = 0x11
