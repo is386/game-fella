@@ -3,6 +3,12 @@ package main
 // TODO:
 // - Pass blarggs timing tests
 // - MBC3 RTC
+// - CGB OPRI register
+// - CGB HDMA
+// - CGB Double Speed
+
+// BUGS:
+// - Fix flipping in window rendering
 
 import (
 	"fmt"

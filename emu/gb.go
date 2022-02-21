@@ -71,6 +71,7 @@ func (gb *GameBoy) loadRom(filename string) {
 	if gb.isCGB {
 		gb.cpu.reg.A = 0x11
 	}
+
 	gb.mmu.initHRAM()
 	gb.setTitle(60)
 }

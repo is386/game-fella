@@ -31,7 +31,7 @@ func NewCartridge(filename string, rom []uint8) *Cartridge {
 	i := strings.LastIndex(filename, ".")
 	cart := &Cartridge{romFileName: filename[:i]}
 
-	if rom[0x143] == 0xC0 {
+	if rom[0x143] == 0xC0 || rom[0x143] == 0x80 {
 		cart.isCGBCart = true
 	}
 

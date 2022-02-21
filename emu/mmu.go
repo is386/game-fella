@@ -25,13 +25,16 @@ var (
 	WY     uint8 = 0x4A
 	WX     uint8 = 0x4B
 	VBK    uint8 = 0x4F
-	KEY1   uint8 = 0x4D
 	HDMA1  uint8 = 0x51
 	HDMA2  uint8 = 0x52
 	HDMA3  uint8 = 0x53
 	HDMA4  uint8 = 0x54
 	HDMA5  uint8 = 0x55
 	RP     uint8 = 0x56
+	BGPI   uint8 = 0x68
+	BGPD   uint8 = 0x69
+	OBPI   uint8 = 0x6A
+	OBPD   uint8 = 0x6B
 	OPRI   uint8 = 0x6C
 	SVBK   uint8 = 0x70
 )
@@ -40,9 +43,11 @@ type MMU struct {
 	gb          *GameBoy
 	bootROM     []uint8
 	VRAM        [0x4000]uint8
-	WRAM        [0x8000]uint8
+	WRAM        [0x9000]uint8
 	OAM         [0x00A0]uint8
 	HRAM        [0x0100]uint8
+	bgCRAM      CRAM
+	spriteCRAM  CRAM
 	bootEnabled bool
 	startup     bool
 }
@@ -140,9 +145,9 @@ func (m *MMU) readByte(addr uint16) uint8 {
 		return m.WRAM[addr-0xC000]
 
 	case 0xD000:
-		var bank uint8 = 0
+		var bank uint8 = 1
 		if m.gb.isCGB {
-			bank = m.HRAM[SVBK] & 0x3
+			bank = m.HRAM[SVBK] & 0x7
 		}
 		return m.WRAM[((addr - 0xC000) + (uint16(bank) * 0x1000))]
 
@@ -197,9 +202,9 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 		return
 
 	case 0xD000:
-		var bank uint8 = 0
+		var bank uint8 = 1
 		if m.gb.isCGB {
-			bank = m.HRAM[SVBK] & 0x3
+			bank = m.HRAM[SVBK] & 0x7
 		}
 		m.WRAM[((addr - 0xC000) + (uint16(bank) * 0x1000))] = val
 		return
@@ -252,12 +257,7 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 
 	case HDMA5:
 		if m.gb.isCGB {
-			// HDMA Transfer
-		}
-
-	case KEY1:
-		if m.gb.isCGB {
-			// Prepare Speed Switch
+			m.newDMATransfer(val)
 		}
 
 	case RP:
@@ -265,9 +265,41 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 			// Infrared Port
 		}
 
+	case BGPI:
+		if m.gb.isCGB {
+			m.bgCRAM.writeIndex(val)
+		}
+
+	case BGPD:
+		if m.gb.isCGB {
+			m.bgCRAM.writeCRAM(val)
+		}
+
+	case OBPI:
+		if m.gb.isCGB {
+			m.spriteCRAM.writeIndex(val)
+		}
+
+	case OBPD:
+		if m.gb.isCGB {
+			m.spriteCRAM.writeCRAM(val)
+		}
+
 	default:
 		m.HRAM[reg] = val
 	}
+}
+
+func (m *MMU) readBgCRAM(addr uint8) uint8 {
+	return m.bgCRAM.readCRAM(addr)
+}
+
+func (m *MMU) readSpriteCRAM(addr uint8) uint8 {
+	return m.spriteCRAM.readCRAM(addr)
+}
+
+func (m *MMU) readVRAM(addr uint16) uint8 {
+	return m.VRAM[addr]
 }
 
 func (m *MMU) readHRAM(reg uint8) uint8 {
@@ -286,6 +318,39 @@ func (m *MMU) dmaTransfer(val uint8) {
 	for i := uint16(0); i < 0xA0; i++ {
 		m.writeByte(0xFE00+i, m.readByte(addr+i))
 	}
+}
+
+func (m *MMU) newDMATransfer(val uint8) {
+	mode := bits.Value(val, 7)
+
+	if mode == 0 {
+		m.gdmaTransfer(val)
+	} else {
+		// HDMA
+	}
+}
+
+func (m *MMU) gdmaTransfer(val uint8) {
+	hdma1 := m.HRAM[HDMA1]
+	hdma2 := m.HRAM[HDMA2] & 0xF0
+	src := (uint16(hdma1) << 8) | uint16(hdma2)
+
+	hdma3 := m.HRAM[HDMA3] & 0x1F
+	hdma4 := m.HRAM[HDMA4] & 0xF0
+	dst := (uint16(hdma3) << 8) | uint16(hdma4)
+	dst += 0x8000
+
+	len := uint16(((val & 0x7F) + 1) * 0x10)
+
+	for i := uint16(0); i < len; i++ {
+		m.writeByte(dst+i, m.readByte(src+i))
+	}
+
+	m.HRAM[HDMA1] = uint8((src & 0xFF00) >> 8)
+	m.HRAM[HDMA2] = uint8((src & 0x00FF) & 0xF0)
+	m.HRAM[HDMA3] = uint8(((dst & 0xFF00) >> 8) & 0x1F)
+	m.HRAM[HDMA4] = uint8((dst & 0x00FF) & 0xF0)
+	m.HRAM[HDMA5] = 0xFF
 }
 
 func (m *MMU) writeInterrupt(i int) {
