@@ -10,7 +10,10 @@ type Registers struct {
 	L uint8
 }
 
-func NewRegisters() *Registers {
+func NewRegisters(isCGB bool) *Registers {
+	if isCGB {
+		return &Registers{A: 0x11, B: 0x00, C: 0x00, D: 0xFF, E: 0x56, H: 0x00, L: 0x0D}
+	}
 	return &Registers{A: 0x01, B: 0x00, C: 0x13, D: 0x00, E: 0xD8, H: 0x01, L: 0x4D}
 }
 

@@ -7,7 +7,7 @@ import (
 var (
 	WIDTH  = 160
 	HEIGHT = 144
-	COLORS = []uint32{0xfcefde, 0x958175, 0x894343, 0x000000}
+	COLORS = []uint32{0xEFEFEF, 0xA9A9A9, 0x545454, 0x000000}
 )
 
 type PPU struct {
@@ -139,7 +139,7 @@ func (p *PPU) setLCDStatus() {
 
 func (p *PPU) drawScanline() {
 	// LCDC bit 0 or CGB mode determines if we draw the BG
-	if p.isBGEnabled() || p.gb.isCGB {
+	if p.isBGEnabled() || (p.gb.isCGB && !p.gb.isDMGCart) {
 		p.renderBG()
 
 		if p.isWindowEnabled() {
@@ -201,7 +201,7 @@ func (p *PPU) renderBG() {
 
 		// Gets the tileId from the tile map. The tileId points
 		// to the actual tile in VRAM
-		tileId := p.gb.mmu.readByte(tileIdAddr)
+		tileId := p.gb.mmu.readVRAM(tileIdAddr - 0x8000)
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr
@@ -211,12 +211,14 @@ func (p *PPU) renderBG() {
 			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
 		}
 
-		// The address of the color palette for the tile
-		paletteAddr := BGP
+		var paletteAddr uint8
 
 		// Tile attributes used by CGB
 		var priority uint8
-		if p.gb.isCGB {
+		if p.gb.isDMGCart {
+			// The address of the color palette for the tile
+			paletteAddr = BGP
+		} else {
 			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr - 0x6000)
 			priority = p.bgHasPriority(tileAttrs)
 
@@ -251,16 +253,19 @@ func (p *PPU) renderBG() {
 		colorId |= bits.Value(tileByte1, uint8(pixelX))
 
 		var color uint32
-		if p.gb.isCGB {
+		if p.gb.isDMGCart && p.gb.isCGB {
+			_, tmp := p.getDMGColor(colorId, paletteAddr)
+			color = p.getCGBColor(tmp, 0, false)
+		} else if p.gb.isCGB {
 			color = p.getCGBColor(colorId, paletteAddr, false)
 		} else {
-			color = p.getDMGColor(colorId, paletteAddr)
+			color, _ = p.getDMGColor(colorId, paletteAddr)
 		}
 
 		p.gb.screen.drawPixel(int32(x), int32(scanline), color)
 		p.tileColorIds[x] = colorId
 
-		if p.isBGEnabled() && p.gb.isCGB {
+		if p.isBGEnabled() && p.gb.isCGB && !p.gb.isDMGCart {
 			p.bgPriority[x][scanline] = priority
 		}
 	}
@@ -296,6 +301,9 @@ func (p *PPU) renderWindow() {
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
 	for x := 0; (x + windowX) < WIDTH; x++ {
+		if (x + windowX) < 0 {
+			continue
+		}
 		// Determines which tile on the BG map the pixel is located
 		tileX := x / 8
 		tileY := p.winLineCount / 8
@@ -310,7 +318,7 @@ func (p *PPU) renderWindow() {
 
 		// Gets the tileId from the tile map. The tileId points
 		// to the actual tile in VRAM
-		tileId := p.gb.mmu.readByte(tileIdAddr)
+		tileId := p.gb.mmu.readVRAM(tileIdAddr - 0x8000)
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr
@@ -320,12 +328,14 @@ func (p *PPU) renderWindow() {
 			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
 		}
 
-		// The address of the color palette for the tile
-		paletteAddr := BGP
+		var paletteAddr uint8
 
 		// Tile attributes used by CGB
 		var priority uint8
-		if p.gb.isCGB {
+		if p.gb.isDMGCart {
+			// The address of the color palette for the tile
+			paletteAddr = BGP
+		} else {
 			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr - 0x6000)
 			priority = p.bgHasPriority(tileAttrs)
 
@@ -360,17 +370,21 @@ func (p *PPU) renderWindow() {
 		colorId |= bits.Value(tileByte1, uint8(pixelX))
 
 		var color uint32
-		if p.gb.isCGB {
+		if p.gb.isDMGCart && p.gb.isCGB {
+			_, tmp := p.getDMGColor(colorId, paletteAddr)
+			color = p.getCGBColor(tmp, 0, false)
+		} else if p.gb.isCGB {
 			color = p.getCGBColor(colorId, paletteAddr, false)
 		} else {
-			color = p.getDMGColor(colorId, paletteAddr)
+			color, _ = p.getDMGColor(colorId, paletteAddr)
 		}
+
 		p.gb.screen.drawPixel(int32(x+windowX), int32(scanline), color)
 		if (x + windowX) >= 0 {
 			p.tileColorIds[x+windowX] = colorId
 		}
 
-		if p.isBGEnabled() && p.gb.isCGB {
+		if p.isBGEnabled() && p.gb.isCGB && !p.gb.isDMGCart {
 			p.bgPriority[x+windowX][scanline] = priority
 		}
 	}
@@ -450,7 +464,7 @@ func (p *PPU) renderSprites() {
 		}
 
 		var bank uint16
-		if p.gb.isCGB {
+		if p.gb.isCGB && !p.gb.isDMGCart {
 			bank = p.getSpriteVRAMBank(attrs)
 		}
 
@@ -469,7 +483,7 @@ func (p *PPU) renderSprites() {
 			// If the pixel at drawX is not 0 (it has been drawn before)
 			// and if the previous x value for this pixel has lower, it
 			// has priority, so skip the current pixel
-			if drawnPixelXs[drawX] != 0 && (drawnPixelXs[drawX] <= x || p.gb.isCGB) {
+			if drawnPixelXs[drawX] != 0 && (drawnPixelXs[drawX] <= x || (p.gb.isCGB && !p.gb.isDMGCart)) {
 				continue
 			}
 
@@ -494,7 +508,7 @@ func (p *PPU) renderSprites() {
 			// or 0xFF49. Each of these palettes will utilize
 			// the 4 colors in different ways
 			var paletteAddr uint8
-			if p.gb.isCGB {
+			if p.gb.isCGB && !p.gb.isDMGCart {
 				paletteAddr = p.getSpriteCGBPalette(attrs)
 			} else if p.useFirstPalette(attrs) {
 				paletteAddr = OBP0
@@ -504,10 +518,13 @@ func (p *PPU) renderSprites() {
 
 			// Gets the color from the colorId
 			var color uint32
-			if p.gb.isCGB {
+			if p.gb.isDMGCart && p.gb.isCGB {
+				_, tmp := p.getDMGColor(colorId, paletteAddr)
+				color = p.getCGBColor(tmp, 0, true)
+			} else if p.gb.isCGB {
 				color = p.getCGBColor(colorId, paletteAddr, true)
 			} else {
-				color = p.getDMGColor(colorId, paletteAddr)
+				color, _ = p.getDMGColor(colorId, paletteAddr)
 			}
 
 			// If the sprite has priority or if the tile is color 0, draw the sprite
@@ -520,14 +537,14 @@ func (p *PPU) renderSprites() {
 	}
 }
 
-func (p *PPU) getDMGColor(colorId uint8, paletteAddr uint8) uint32 {
+func (p *PPU) getDMGColor(colorId uint8, paletteAddr uint8) (uint32, uint8) {
 	// Gets the palette at the address
 	palette := p.gb.mmu.readHRAM(paletteAddr)
 	// Uses the colorId to get the color number 1-4 from the palette
 	hi := (colorId << 1) | 1
 	lo := colorId << 1
 	colorNum := (bits.Value(palette, hi) << 1) | bits.Value(palette, lo)
-	return COLORS[colorNum]
+	return COLORS[colorNum], colorNum
 }
 
 func (p *PPU) getCGBColor(colorId uint8, paletteAddr uint8, isSprite bool) uint32 {

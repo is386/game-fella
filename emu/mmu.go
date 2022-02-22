@@ -46,14 +46,15 @@ type MMU struct {
 	WRAM        [0x9000]uint8
 	OAM         [0x00A0]uint8
 	HRAM        [0x0100]uint8
+	vramBank    uint8
+	wramBank    uint8
 	bgCRAM      CRAM
 	spriteCRAM  CRAM
 	bootEnabled bool
-	startup     bool
 }
 
 func NewMMU(gb *GameBoy) *MMU {
-	m := MMU{gb: gb, startup: true}
+	m := MMU{gb: gb, wramBank: 1}
 	return &m
 }
 
@@ -121,7 +122,7 @@ func (m *MMU) loadBootRom(rom []uint8) {
 func (m *MMU) readByte(addr uint16) uint8 {
 	switch addr & 0xF000 {
 	case 0x0000:
-		if m.bootEnabled && addr < 0x100 {
+		if m.bootEnabled && (addr < 0x100 || (addr >= 0x200 && addr < 0x900)) {
 			return m.bootROM[addr]
 		} else if m.bootEnabled && m.gb.cpu.pc == 0x100 {
 			m.bootEnabled = false
@@ -132,27 +133,20 @@ func (m *MMU) readByte(addr uint16) uint8 {
 		return m.gb.cart.ReadByte(addr)
 
 	case 0x8000, 0x9000:
-		var bank uint8 = 0
-		if m.gb.isCGB {
-			bank = bits.Value(m.HRAM[VBK], 0)
-		}
-		return m.VRAM[((addr - 0x8000) + (uint16(bank) * 0x2000))]
+		return m.VRAM[((addr - 0x8000) + (uint16(m.vramBank) * 0x2000))]
 
 	case 0xA000, 0xB000:
 		return m.gb.cart.ReadByte(addr)
 
-	case 0xC000:
-		return m.WRAM[addr-0xC000]
-
-	case 0xD000:
-		var bank uint8 = 1
-		if m.gb.isCGB {
-			bank = m.HRAM[SVBK] & 0x7
+	case 0xC000, 0xD000, 0xE000:
+		if addr >= 0xE000 {
+			addr -= 0x2000
 		}
-		return m.WRAM[((addr - 0xC000) + (uint16(bank) * 0x1000))]
-
-	case 0xE000:
-		return 0xFF
+		if addr <= 0xCFFF {
+			return m.WRAM[addr-0xC000]
+		} else {
+			return m.WRAM[((addr - 0xC000) + (uint16(m.wramBank) * 0x1000))]
+		}
 	}
 
 	switch addr & 0x0F00 {
@@ -180,36 +174,26 @@ func (m *MMU) writeByte(addr uint16, val uint8) {
 	switch addr & 0xF000 {
 
 	case 0x0000, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000:
-		if !m.startup {
-			m.gb.cart.WriteROM(addr, val)
-		}
+		m.gb.cart.WriteROM(addr, val)
 		return
 
 	case 0x8000, 0x9000:
-		var bank uint8 = 0
-		if m.gb.isCGB {
-			bank = bits.Value(m.HRAM[VBK], 0)
-		}
-		m.VRAM[((addr - 0x8000) + (uint16(bank) * 0x2000))] = val
+		m.VRAM[((addr - 0x8000) + (uint16(m.vramBank) * 0x2000))] = val
 		return
 
 	case 0xA000, 0xB000:
 		m.gb.cart.WriteRAM(addr, val)
 		return
 
-	case 0xC000:
-		m.WRAM[addr-0xC000] = val
-		return
-
-	case 0xD000:
-		var bank uint8 = 1
-		if m.gb.isCGB {
-			bank = m.HRAM[SVBK] & 0x7
+	case 0xC000, 0xD000, 0xE000:
+		if addr >= 0xE000 {
+			addr -= 0x2000
 		}
-		m.WRAM[((addr - 0xC000) + (uint16(bank) * 0x1000))] = val
-		return
-
-	case 0xE000:
+		if addr <= 0xCFFF {
+			m.WRAM[addr-0xC000] = val
+		} else {
+			m.WRAM[((addr - 0xC000) + (uint16(m.wramBank) * 0x1000))] = val
+		}
 		return
 	}
 
@@ -255,6 +239,19 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 	case DMA:
 		m.dmaTransfer(val)
 
+	case VBK:
+		if m.gb.isCGB {
+			m.vramBank = val & 1
+		}
+
+	case SVBK:
+		if m.gb.isCGB {
+			m.wramBank = val & 0x7
+			if m.wramBank == 0 {
+				m.wramBank = 1
+			}
+		}
+
 	case HDMA5:
 		if m.gb.isCGB {
 			m.newDMATransfer(val)
@@ -284,10 +281,8 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 		if m.gb.isCGB {
 			m.spriteCRAM.writeCRAM(val)
 		}
-
-	default:
-		m.HRAM[reg] = val
 	}
+	m.HRAM[reg] = val
 }
 
 func (m *MMU) readBgCRAM(addr uint8) uint8 {
@@ -304,9 +299,6 @@ func (m *MMU) readVRAM(addr uint16) uint8 {
 
 func (m *MMU) readHRAM(reg uint8) uint8 {
 	switch {
-
-	case reg == VBK && m.gb.isCGB:
-		return m.HRAM[VBK] & 0xFE
 
 	case reg == KEY1 && m.gb.isCGB:
 		return 0

@@ -24,15 +24,15 @@ type Cartridge struct {
 	name        string
 	romFileName string
 	canSave     bool
-	isCGBCart   bool
+	isDMGCart   bool
 }
 
 func NewCartridge(filename string, rom []uint8) *Cartridge {
 	i := strings.LastIndex(filename, ".")
 	cart := &Cartridge{romFileName: filename[:i]}
 
-	if rom[0x143] == 0xC0 || rom[0x143] == 0x80 {
-		cart.isCGBCart = true
+	if rom[0x143] != 0xC0 && rom[0x143] != 0x80 {
+		cart.isDMGCart = true
 	}
 
 	for i := 0x134; i < 0x143; i++ {
@@ -126,6 +126,6 @@ func (c *Cartridge) Load() {
 	}
 }
 
-func (c *Cartridge) IsCGBMode() bool {
-	return c.isCGBCart
+func (c *Cartridge) IsDMGCart() bool {
+	return c.isDMGCart
 }

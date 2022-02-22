@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	PC         uint16 = 0x100
 	SP         uint16 = 0xFFFE
 	INT_VBLANK        = 0
 	INT_LCD           = 1
@@ -31,12 +30,12 @@ type CPU struct {
 	halted, ime, imePending bool
 }
 
-func NewCPU(gb *GameBoy) *CPU {
-	return &CPU{gb: gb, reg: NewRegisters(), flags: NewFlags(), pc: PC, sp: SP}
-}
-
-func (c *CPU) resetPC() {
-	c.pc = 0x0
+func NewCPU(gb *GameBoy, isCGB bool, bootEnabled bool) *CPU {
+	c := &CPU{gb: gb, reg: NewRegisters(isCGB), flags: NewFlags(), sp: SP}
+	if !bootEnabled {
+		c.pc = 0x100
+	}
+	return c
 }
 
 func (c *CPU) readByte(addr uint16) uint8 {

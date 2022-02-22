@@ -27,21 +27,36 @@ type GameBoy struct {
 	buttons        *Buttons
 	cart           *cart.Cartridge
 	isCGB          bool
+	isDMGCart      bool
 	cyc            int
 	running, debug bool
 }
 
 func NewGameBoy(rom string, bootPath string, scale int, debug bool) *GameBoy {
 	gb := &GameBoy{debug: debug, running: true}
-	gb.cpu = NewCPU(gb)
+
 	gb.mmu = NewMMU(gb)
 	gb.screen = NewScreen(scale)
 	gb.ppu = NewPPU(gb)
 	gb.apu = apu.NewAPU()
 	gb.timer = NewTimer(gb)
 	gb.buttons = NewButtons(gb)
+
 	gb.loadBootRom(bootPath)
-	gb.loadRom(rom)
+	gb.loadCart(rom)
+	if !gb.isCGB {
+		gb.isDMGCart = gb.cart.IsDMGCart()
+	}
+	gb.isCGB = !gb.isDMGCart || gb.isCGB
+
+	gb.cpu = NewCPU(gb, gb.isCGB, bootPath != "")
+
+	if bootPath == "" {
+		gb.mmu.initHRAM()
+	}
+
+	gb.setTitle(60)
+
 	return gb
 }
 
@@ -51,32 +66,18 @@ func (gb *GameBoy) loadBootRom(filename string) {
 		fmt.Println("Boot ROM not valid. Skipping boot screen...")
 		return
 	}
+	gb.isCGB = len(boot) > 0x100
 	gb.mmu.loadBootRom(boot)
-	gb.cpu.resetPC()
 }
 
-func (gb *GameBoy) loadRom(filename string) {
+func (gb *GameBoy) loadCart(filename string) {
 	rom, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-
 	gb.cart = cart.NewCartridge(filename, rom)
-	for i := 0; i < len(rom); i++ {
-		gb.mmu.writeByte(uint16(i), rom[i])
-	}
-
-	gb.mmu.startup = false
 	gb.cart.Load()
-
-	gb.isCGB = gb.cart.IsCGBMode()
-	if gb.isCGB {
-		gb.cpu.reg.A = 0x11
-	}
-
-	gb.mmu.initHRAM()
-	gb.setTitle(60)
 }
 
 func (gb *GameBoy) Run() {
@@ -125,6 +126,10 @@ func (gb *GameBoy) update() {
 	}
 	gb.buttons.update()
 	gb.cyc -= CPS
+
+	if !gb.mmu.bootEnabled && gb.isCGB {
+		gb.isDMGCart = gb.cart.IsDMGCart()
+	}
 }
 
 func (gb *GameBoy) close() {
