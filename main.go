@@ -5,13 +5,11 @@ package main
 // - MBC3 RTC
 // - CGB HDMA
 // - CGB Double Speed
-// - CGB colors for DMG games
 
 // CGB-ONLY BUGS:
-// - Pokemon Yellow all black in CGB mode
-// - Pokemon Gold/Silver crashes when you press start
+// - Pokemon Yellow all black w/o bootrom
+// - Pokemon Yellow window priority issue
 // - Pokemon Gold/Silver have flashing tiles
-// - Boot screen is very messed up
 
 import (
 	"fmt"

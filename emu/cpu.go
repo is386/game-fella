@@ -112,6 +112,7 @@ func (c *CPU) checkIME() {
 		for i := 0; i < 5; i++ {
 			if (((intF >> i) & 1) == 1) && (((intE >> i) & 1) == 1) {
 				c.doInterrupt(i)
+				return
 			}
 		}
 	}
