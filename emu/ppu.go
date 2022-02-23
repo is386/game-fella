@@ -559,17 +559,32 @@ func (p *PPU) getCGBColor(colorId uint8, paletteAddr uint8, isSprite bool) uint3
 		colorLo = p.gb.mmu.readBgCRAM(colorIdx + 1)
 	}
 
-	color := uint16(colorHi) | (uint16(colorLo) << 8)
+	return correctColor(uint16(colorHi) | (uint16(colorLo) << 8))
+}
 
-	r := uint8(color & 0x1F)
-	g := uint8((color >> 5) & 0x1F)
-	b := uint8((color >> 10) & 0x1F)
+func correctColor(color uint16) uint32 {
+	red := int(color & 0x1F)
+	green := int((color & 0x3E0) >> 5)
+	blue := int((color & 0x7C00) >> 10)
 
-	r = (r << 3) | (r >> 2)
-	g = (g << 3) | (g >> 2)
-	b = (b << 3) | (b >> 2)
+	var r, g, b int
 
-	return uint32(r)<<16 | uint32(g)<<8 | uint32(b)
+	r = (red*26 + green*4 + blue*2)
+	g = (green*24 + blue*8)
+	b = (red*6 + green*4 + blue*22)
+
+	r = min(960, r) >> 2
+	g = min(960, g) >> 2
+	b = min(960, b) >> 2
+
+	return (uint32(r) << 16) | (uint32(g) << 8) | uint32(b)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // LCDC Bit Checks
