@@ -3,28 +3,30 @@ package emu
 import "github.com/is386/GoBoy/emu/bits"
 
 type CRAM struct {
-	CRAM     [0x0040]uint8
-	autoIncr uint8
-	cramAddr uint8
+	CRAM     [0x40]uint8
+	autoIncr bool
+	index    uint8
 }
 
 func (c *CRAM) writeIndex(val uint8) {
-	c.autoIncr = bits.Value(val, 7)
-	c.cramAddr = val & 0x31
+	if bits.Test(val, 7) {
+		c.autoIncr = true
+	} else {
+		c.autoIncr = false
+	}
+	c.index = val & 0x3F
 }
 
 func (c *CRAM) writeCRAM(val uint8) {
-	c.CRAM[c.cramAddr] = val
-	c.cramAddr += c.autoIncr
-	c.cramAddr &= 0x3F
-}
-
-func (c *CRAM) readAddr() uint8 {
-	return c.cramAddr
+	c.CRAM[c.index] = val
+	if c.autoIncr {
+		c.index += 1
+	}
+	c.index %= 0x40
 }
 
 func (c *CRAM) readCurrentCRAM() uint8 {
-	return c.CRAM[c.cramAddr]
+	return c.CRAM[c.index]
 }
 
 func (c *CRAM) readCRAM(addr uint8) uint8 {

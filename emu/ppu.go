@@ -133,6 +133,9 @@ func (p *PPU) setLCDStatus() {
 		p.mode = 0
 		stat = bits.Reset(stat, 0)
 		stat = bits.Reset(stat, 1)
+		if p.mode != currMode {
+			p.gb.mmu.hdmaTransfer()
+		}
 	}
 	p.gb.mmu.writeHRAM(STAT, stat)
 }
