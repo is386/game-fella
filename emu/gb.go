@@ -51,10 +51,6 @@ func NewGameBoy(rom string, bootPath string, scale int, debug bool) *GameBoy {
 
 	gb.cpu = NewCPU(gb, gb.isCGB, bootPath != "")
 
-	if bootPath == "" {
-		gb.mmu.initHRAM()
-	}
-
 	gb.setTitle(60)
 
 	return gb
