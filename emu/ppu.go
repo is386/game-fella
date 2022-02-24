@@ -157,9 +157,9 @@ func (p *PPU) drawScanline() {
 }
 
 func (p *PPU) renderBG() {
-	scanline := p.gb.mmu.readHRAM(LY)
-	scrollY := p.gb.mmu.readHRAM(SCY)
-	scrollX := p.gb.mmu.readHRAM(SCX)
+	scanline := int(p.gb.mmu.readHRAM(LY))
+	scrollY := int(p.gb.mmu.readHRAM(SCY))
+	scrollX := int(p.gb.mmu.readHRAM(SCX))
 
 	var tileBaseAddr, bgMapAddr uint16
 
@@ -184,18 +184,18 @@ func (p *PPU) renderBG() {
 
 	// Goes through each column of the screen, and draws the
 	// part of the tile that is on the scanline
-	for x := uint8(0); x < uint8(WIDTH); x++ {
+	for x := 0; x < WIDTH; x++ {
 
 		// Determines the x and y values after scrolling is applied
-		scrolledX := uint16(x + scrollX)
-		scrolledY := uint16(scanline + scrollY)
+		scrolledX := (x + scrollX) % 256
+		scrolledY := (scanline + scrollY) % 256
 
 		// Determines which tile on the BG map the pixel is located
 		tileX := scrolledX / 8
 		tileY := scrolledY / 8
 
 		// Determines which pixel within the tile to draw
-		pixelX := 7 - (scrolledX % 8)
+		pixelX := scrolledX % 8
 		pixelY := scrolledY % 8
 
 		// Gets the address of the tileId in the tile map
@@ -204,12 +204,12 @@ func (p *PPU) renderBG() {
 
 		// Gets the tileId from the tile map. The tileId points
 		// to the actual tile in VRAM
-		tileId := p.gb.mmu.readVRAM(tileIdAddr - 0x8000)
+		tileId := p.gb.mmu.readVRAM(tileIdAddr, 0)
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr
 		if p.useFirstTileArea() {
-			tileAddr += uint16(tileId) * 16
+			tileAddr = tileAddr + (uint16(tileId) * 16)
 		} else {
 			tileAddr = uint16(int16(tileAddr) + int16(int8(tileId))*16)
 		}
@@ -217,12 +217,13 @@ func (p *PPU) renderBG() {
 		var paletteAddr uint8
 
 		// Tile attributes used by CGB
-		var priority uint8
+		var priority, bank uint8
 		if p.gb.isDMGCart {
 			// The address of the color palette for the tile
 			paletteAddr = BGP
 		} else {
-			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr - 0x6000)
+
+			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr, 1)
 			priority = p.bgHasPriority(tileAttrs)
 
 			if p.isBGFlipY(tileAttrs) {
@@ -230,30 +231,28 @@ func (p *PPU) renderBG() {
 			}
 
 			if p.isBGFlipX(tileAttrs) {
-				pixelX = scrolledX % 8
+				pixelX = 7 - (scrolledX % 8)
 			}
 
-			bank := p.getBGVRAMBank(tileAttrs)
-			tileAddr += (bank * 0x2000)
-
+			bank = p.getBGVRAMBank(tileAttrs)
 			paletteAddr = p.getBGPalette(tileAttrs)
 		}
 
 		// Add the y-value to the address to determine the line of the tile
-		tileAddr += uint16(pixelY) * 2
+		tileAddr += uint16(pixelY * 2)
 
 		// Each row of the tile is comprised of two bytes. So
 		// we use the tile address from the tileId and the row
 		// of the tile we want to draw to get the two bytes
-		tileByte1 := p.gb.mmu.readVRAM(tileAddr - 0x8000)
-		tileByte2 := p.gb.mmu.readVRAM(tileAddr + 1 - 0x8000)
+		tileByte1 := p.gb.mmu.readVRAM(tileAddr, bank)
+		tileByte2 := p.gb.mmu.readVRAM(tileAddr+1, bank)
 
 		// Each bit in each byte is one pixel. The nth bit in each
 		// tile byte combines to make a 2 bit color id. The current
 		// pixel is the bit we want the color for
-		colorId := (bits.Value(tileByte2, uint8(pixelX)))
+		colorId := (bits.Value(tileByte2, uint8(7-pixelX)))
 		colorId <<= 1
-		colorId |= bits.Value(tileByte1, uint8(pixelX))
+		colorId |= bits.Value(tileByte1, uint8(7-pixelX))
 
 		var color uint32
 		if p.gb.isDMGCart && p.gb.isCGB {
@@ -321,7 +320,7 @@ func (p *PPU) renderWindow() {
 
 		// Gets the tileId from the tile map. The tileId points
 		// to the actual tile in VRAM
-		tileId := p.gb.mmu.readVRAM(tileIdAddr - 0x8000)
+		tileId := p.gb.mmu.readVRAM(tileIdAddr, 0)
 
 		// Determines the address of the tile in VRAM
 		tileAddr := tileBaseAddr
@@ -334,12 +333,12 @@ func (p *PPU) renderWindow() {
 		var paletteAddr uint8
 
 		// Tile attributes used by CGB
-		var priority uint8
+		var priority, bank uint8
 		if p.gb.isDMGCart {
 			// The address of the color palette for the tile
 			paletteAddr = BGP
 		} else {
-			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr - 0x6000)
+			tileAttrs := p.gb.mmu.readVRAM(tileIdAddr, 1)
 			priority = p.bgHasPriority(tileAttrs)
 
 			if p.isBGFlipY(tileAttrs) {
@@ -350,8 +349,7 @@ func (p *PPU) renderWindow() {
 				pixelX = x % 8
 			}
 
-			bank := p.getBGVRAMBank(tileAttrs)
-			tileAddr += (bank * 0x2000)
+			bank = p.getBGVRAMBank(tileAttrs)
 
 			paletteAddr = p.getBGPalette(tileAttrs)
 		}
@@ -362,8 +360,8 @@ func (p *PPU) renderWindow() {
 		// Each row of the tile is comprised of two bytes. So
 		// we use the tile address from the tileId and the row
 		// of the tile we want to draw to get the two bytes
-		tileByte1 := p.gb.mmu.readVRAM(tileAddr - 0x8000)
-		tileByte2 := p.gb.mmu.readVRAM(tileAddr + 1 - 0x8000)
+		tileByte1 := p.gb.mmu.readVRAM(tileAddr, bank)
+		tileByte2 := p.gb.mmu.readVRAM(tileAddr+1, bank)
 
 		// Each bit in each byte is one pixel. The nth bit in each
 		// tile byte combines to make a 2 bit color id. The current
@@ -466,15 +464,15 @@ func (p *PPU) renderSprites() {
 			yOffset = spriteHeight - yOffset - 1
 		}
 
-		var bank uint16
+		var bank uint8
 		if p.gb.isCGB && !p.gb.isDMGCart {
 			bank = p.getSpriteVRAMBank(attrs)
 		}
 
 		// Gets the tile bytes for this sprite from VRAM
-		tileAddr := uint16(tileIdx)*16 + uint16(yOffset)*2 + (bank * 0x2000)
-		tileByte1 := p.gb.mmu.readVRAM(tileAddr)
-		tileByte2 := p.gb.mmu.readVRAM(tileAddr + 1)
+		tileAddr := uint16(tileIdx)*16 + uint16(yOffset)*2 + 0x8000
+		tileByte1 := p.gb.mmu.readVRAM(tileAddr, bank)
+		tileByte2 := p.gb.mmu.readVRAM(tileAddr+1, bank)
 
 		// Goes through the 8 pixels for current tile row
 		for tilePixel := 0; tilePixel < 8; tilePixel++ {
@@ -660,8 +658,8 @@ func (p *PPU) useFirstPalette(spriteAttrs uint8) bool {
 	return !bits.Test(spriteAttrs, 4)
 }
 
-func (p *PPU) getSpriteVRAMBank(spriteAttrs uint8) uint16 {
-	return uint16(bits.Value(spriteAttrs, 3))
+func (p *PPU) getSpriteVRAMBank(spriteAttrs uint8) uint8 {
+	return bits.Value(spriteAttrs, 3)
 }
 
 func (p *PPU) getSpriteCGBPalette(spriteAttrs uint8) uint8 {
@@ -682,8 +680,8 @@ func (p *PPU) isBGFlipX(bgAttrs uint8) bool {
 	return bits.Test(bgAttrs, 5)
 }
 
-func (p *PPU) getBGVRAMBank(bgAttrs uint8) uint16 {
-	return uint16(bits.Value(bgAttrs, 3))
+func (p *PPU) getBGVRAMBank(bgAttrs uint8) uint8 {
+	return bits.Value(bgAttrs, 3)
 }
 
 func (p *PPU) getBGPalette(bgAttrs uint8) uint8 {
