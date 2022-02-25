@@ -35,7 +35,7 @@ func NewCartridge(filename string, rom []uint8) *Cartridge {
 		cart.isDMGCart = true
 	}
 
-	for i := 0x134; i < 0x143; i++ {
+	for i := 0x134; i < 0x13F; i++ {
 		if rom[i] == 0 {
 			break
 		}

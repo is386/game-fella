@@ -3,9 +3,11 @@ package main
 // TODO:
 // - Pass blarggs timing tests
 // - Pass DMG and CBG sound tests
-
-// BUGS:
-// - HDMA still a little weird at times
+// - Figure out minor HDMA bugs
+// - Figure out why Oracle of Seasons doesn't work
+// - Super GameBoy
+// - Save States
+// - Rewind
 
 import (
 	"fmt"
