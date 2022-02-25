@@ -14,7 +14,7 @@ GameFella is a Nintendo GameBoy and GameBoy color emulator written in Go. Develo
 
 ## Screenshots
 
-<img src="screenshots/zelda.png" width="600" >
+<img src="screenshots/zelda.png">
 
 
 
