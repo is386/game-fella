@@ -3,7 +3,9 @@ package main
 // TODO:
 // - Pass blarggs timing tests
 // - Pass DMG and CBG sound tests
-// - CGB Double Speed
+
+// BUGS:
+// - HDMA still a little weird at times
 
 import (
 	"fmt"

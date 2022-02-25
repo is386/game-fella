@@ -78,11 +78,11 @@ func (c *CPU) decode(opcode uint8) (func(*CPU), int) {
 	return INSTRUCTIONS[opcode], CYCLES[opcode]
 }
 
-func (c *CPU) execute() int {
+func (c *CPU) execute(speed int) int {
 	opcode := c.fetch()
 	instr, cyc := c.decode(opcode)
 	instr(c)
-	return cyc * 4
+	return (cyc * 4) / speed
 }
 
 func (c *CPU) print() {
@@ -2390,4 +2390,12 @@ func ccf(c *CPU) {
 
 func halt(c *CPU) {
 	c.halted = true
+}
+
+func stop(c *CPU) {
+	c.halted = true
+	if c.gb.isCGB {
+		c.gb.changeSpeed()
+	}
+	c.fetch()
 }

@@ -54,7 +54,7 @@ type MMU struct {
 	bootEnabled      bool
 	bootJustDisabled bool
 	hdmaActive       bool
-	hdmaLength       uint8
+	prepareSpeed     uint8
 }
 
 func NewMMU(gb *GameBoy) *MMU {
@@ -131,7 +131,6 @@ func (m *MMU) readByte(addr uint16) uint8 {
 			return m.bootROM[addr]
 		} else if m.bootEnabled && m.gb.cpu.pc == 0x100 {
 			m.bootEnabled = false
-			m.bootJustDisabled = true
 		}
 		return m.gb.cart.ReadByte(addr)
 
@@ -269,7 +268,7 @@ func (m *MMU) writeHRAM(reg uint8, val uint8) {
 
 	case KEY1:
 		if m.gb.isCGB {
-			//m.HRAM[KEY1] = 0xFF
+			m.prepareSpeed = bits.Value(val, 0)
 		}
 
 	case BGPI:
@@ -317,6 +316,9 @@ func (m *MMU) readHRAM(reg uint8) uint8 {
 
 	case SVBK:
 		return m.wramBank
+
+	case KEY1:
+		return uint8(m.gb.speed<<7) | m.prepareSpeed
 
 	case BGPI:
 		return m.bgCRAM.index
