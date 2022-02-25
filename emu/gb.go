@@ -105,8 +105,17 @@ func (gb *GameBoy) Run() {
 	}
 }
 
+func (gb *GameBoy) checkBoot() {
+	if gb.mmu.bootJustDisabled && gb.isCGB {
+		gb.isDMGCart = gb.cart.IsDMGCart()
+		gb.mmu = NewMMU(gb)
+		gb.mmu.bootJustDisabled = false
+	}
+}
+
 func (gb *GameBoy) update() {
 	for gb.cyc < CPS {
+		gb.checkBoot()
 		cyc := 1
 		if !gb.cpu.halted {
 			if gb.debug {
@@ -122,10 +131,6 @@ func (gb *GameBoy) update() {
 	}
 	gb.buttons.update()
 	gb.cyc -= CPS
-
-	if !gb.mmu.bootEnabled && gb.isCGB {
-		gb.isDMGCart = gb.cart.IsDMGCart()
-	}
 }
 
 func (gb *GameBoy) close() {

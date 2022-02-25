@@ -2,14 +2,8 @@ package main
 
 // TODO:
 // - Pass blarggs timing tests
-// - MBC3 RTC
-// - CGB HDMA
+// - Pass DMG and CBG sound tests
 // - CGB Double Speed
-
-// CGB-ONLY BUGS:
-// - Pokemon Yellow all black w/o bootrom
-// - Pokemon Yellow window priority issue
-// - Pokemon Gold/Silver have flashing tiles
 
 import (
 	"fmt"

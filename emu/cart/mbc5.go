@@ -31,7 +31,9 @@ func (m *MBC5) readByte(addr uint16) uint8 {
 		return m.ROM[(uint32(m.romBank*0x4000) + uint32(addr-0x4000))]
 
 	case 0xA000, 0xB000:
-		return m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))]
+		if m.ramEnabled {
+			return m.RAM[(uint32(m.ramBank*0x2000) + uint32(addr-0xA000))]
+		}
 	}
 	return 0xFF
 }

@@ -30,7 +30,7 @@ func NewScreen(scale int) *Screen {
 		panic(err)
 	}
 
-	sur.FillRect(nil, 0xFFFFFF)
+	sur.FillRect(nil, 0x000000)
 	win.UpdateSurface()
 
 	s := Screen{scale: scale, win: win, sur: sur}
